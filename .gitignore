@@ -41,3 +41,6 @@ htmlcov/
 data/*.db
 logs/*
 !logs/.gitkeep
+
+.vercel
+.env*
