@@ -58,8 +58,8 @@ IDS_INTERFACE = os.environ.get("IDS_INTERFACE", "enp0s8")
 MONITORED_NETWORK = os.environ.get("MONITORED_NETWORK", "192.168.56.0/24")
 IDS_HOST_IP = os.environ.get("IDS_HOST_IP", "192.168.56.112")   # sensor's own IP, ignored
 
-RULES_FILE = path_in_project("rules_config.json")
-LOGS_DIR = path_in_project("logs")
+RULES_FILE = os.environ.get("RULES_FILE", path_in_project("rules_config.json"))
+LOGS_DIR = os.environ.get("LOGS_DIR", path_in_project("logs"))
 
 # ---------------------------------------------------------------- Incidents
 # Alerts from the same source IP within this window are grouped into one incident.

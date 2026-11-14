@@ -10,6 +10,14 @@ os.environ.setdefault("AUTO_TRIAGE", "false")
 os.environ.setdefault("LLM_PROVIDER", "offline")
 os.environ.setdefault("PACK_DIR", os.path.join(ROOT, "problem_c_data"))
 
+import shutil  # noqa: E402
+
+# Everything the app writes must live in /tmp on Vercel.
+os.makedirs("/tmp/logs", exist_ok=True)
+shutil.copy(os.path.join(ROOT, "rules_config.json"), "/tmp/rules_config.json")
+os.environ.setdefault("LOGS_DIR", "/tmp/logs")
+os.environ.setdefault("RULES_FILE", "/tmp/rules_config.json")
+
 import init_db  # noqa: E402
 
 try:

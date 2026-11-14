@@ -58,7 +58,7 @@ def init(reset=False):
     db.upsert_user(ADMIN_USERNAME, generate_password_hash(ADMIN_PASSWORD))
     os.makedirs(os.path.join(PROJECT_ROOT, "logs"), exist_ok=True)
     print(f"Database ready ({'SQLite: ' + SQLITE_PATH if db.IS_SQLITE else 'PostgreSQL'}).")
-    print(f"Login: {ADMIN_USERNAME} / {ADMIN_PASSWORD}")
+    print(f"Login: {ADMIN_USERNAME} / " + ("(password from ADMIN_PASSWORD)" if os.environ.get("ADMIN_PASSWORD") else ADMIN_PASSWORD))
 
 
 if __name__ == "__main__":
