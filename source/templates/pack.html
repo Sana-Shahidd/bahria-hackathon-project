@@ -46,6 +46,11 @@
         .clock { font-family: Consolas, monospace; font-weight: 700; }
         .clock.late { color: #fca5a5; } .clock.soon { color: #fcd34d; }
         svg text { font-family: Arial, sans-serif; }
+        .nd { transition: opacity .6s; } .edge { transition: opacity .6s; }
+        .nd.pulse rect { animation: pulse 1.2s ease-in-out infinite; }
+        @keyframes pulse { 0%,100% { stroke: #e2e8f0; stroke-opacity: .3; stroke-width: 1; } 50% { stroke: #fbbf24; stroke-opacity: 1; stroke-width: 4; } }
+        .edge.flow { animation: flow .8s linear infinite; }
+        @keyframes flow { to { stroke-dashoffset: -28; } }
         .ok { color: #86efac; } .bad { color: #fca5a5; }
         details summary { cursor: pointer; color: #93c5fd; }
     </style>
@@ -182,21 +187,75 @@ function timeline() {
     $("#p-timeline").querySelectorAll("[data-src]").forEach(c => c.onclick = () => { tlFilter.src.has(c.dataset.src) ? tlFilter.src.delete(c.dataset.src) : tlFilter.src.add(c.dataset.src); timeline(); });
 }
 
+const PATH_STEPS = [
+    {t: "04:12:07", nodes: ["mail"], edges: [], cap: "A phishing mail (M-55187) from a look-alike domain is delivered to three staff. SPF failed, but the score (6.2) is under the 8.0 quarantine limit."},
+    {t: "04:19:40", nodes: ["click"], edges: [[0, "mail", "click"]], cap: "Ayesha's laptop connects to 198.51.100.77, the host of the fake payroll page. Sadia and Usman show no click."},
+    {t: "05:46:58", nodes: ["ip"], edges: [[1, "click", "ip"]], cap: "The same address starts hammering her VPN account: 3 rejected pushes and 1 timeout in under 2 minutes (rule 6.1)."},
+    {t: "05:49:12", nodes: ["vpn"], edges: [[2, "ip", "vpn"]], cap: "An MFA push is approved from Romania - every other VPN login that day is from Pakistan. The attacker gets internal address 10.10.3.45."},
+    {t: "05:55:31", nodes: ["dc", "db"], edges: [[3, "vpn", "dc"], [5, "vpn", "db"]], cap: "Kerberos tickets are issued; a short 1,240-byte session reaches SRV-DB01. What it did there is not in the logs (DB log not forwarded)."},
+    {t: "06:03:12", nodes: ["fs"], edges: [[4, "vpn", "fs"]], cap: "A 2.4 GB SMB transfer from SRV-FS01 (finance and HR shares) starts. It ends at 06:21:19 UTC; the VPN log shows the same volume reaching the client.", bytes: true},
+    {t: "06:42:17", nodes: ["pw"], edges: [[6, "vpn", "pw"]], cap: "The attacker resets Ayesha's password. The mail gateway sends her a 'password was changed' notice."},
+    {t: "07:32:50", nodes: ["lock"], edges: [[7, "pw", "lock"]], cap: "Ayesha types her old password on her laptop and is locked out - the alert that finally exposes the attack."},
+];
+let pathState = {step: -1, timer: null, speed: 1};
+
 function path() {
     const g = D.graph; if (!g) { $("#p-path").innerHTML = `<div class="card-custom muted">No attack chain found.</div>`; return; }
     const pos = {mail:[70,60], click:[290,60], ip:[510,60], vpn:[510,170], dc:[760,90], fs:[760,200], db:[760,310], pw:[510,290], lock:[290,290]};
     const col = {attacker:"#7f1d1d", victim:"#1e3a8a", asset:"#334155", loss:"#b91c1c"};
-    let svg = `<svg viewBox="0 0 900 380" width="100%" style="background:#0b1220;border-radius:12px"><defs><marker id="ar" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#94a3b8"/></marker></defs>`;
-    g.edges.forEach(([a,b]) => { const A = pos[a], B = pos[b];
-        svg += `<line x1="${A[0]+ (B[0]>A[0]?70:(B[0]<A[0]?-70:0))}" y1="${A[1]+(B[1]>A[1]?24:(B[1]<A[1]?-24:0))}" x2="${B[0]-(B[0]>A[0]?70:(B[0]<A[0]?-70:0))}" y2="${B[1]-(B[1]>A[1]?24:(B[1]<A[1]?-24:0))}" stroke="#94a3b8" stroke-width="2" marker-end="url(#ar)"/>`; });
+    let svg = `<svg viewBox="0 0 900 380" width="100%" style="background:#0b1220;border-radius:12px"><defs><marker id="ar" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#f87171"/></marker></defs>`;
+    g.edges.forEach(([a,b], idx) => { const A = pos[a], B = pos[b];
+        const dx = B[0] > A[0] ? 70 : (B[0] < A[0] ? -70 : 0), dy = B[1] > A[1] ? 26 : (B[1] < A[1] ? -26 : 0);
+        svg += `<line class="edge" id="e-${a}-${b}" x1="${A[0]+dx}" y1="${A[1]+dy}" x2="${B[0]-dx}" y2="${B[1]-dy}" stroke="#f87171" stroke-width="2.5" marker-end="url(#ar)"/>`; });
     g.nodes.forEach(n => { const p = pos[n.id];
-        svg += `<g class="nd" data-ref="${esc((n.cites[0]||'').slice(1,-1))}" style="cursor:pointer"><rect x="${p[0]-70}" y="${p[1]-26}" width="140" height="52" rx="10" fill="${col[n.kind]}" stroke="#e2e8f0" stroke-opacity=".25"/>
+        svg += `<g class="nd" id="n-${n.id}" data-ref="${esc((n.cites[0]||'').slice(1,-1))}" style="cursor:pointer"><rect x="${p[0]-70}" y="${p[1]-26}" width="140" height="52" rx="10" fill="${col[n.kind]}" stroke="#e2e8f0" stroke-opacity=".3"/>
             <text x="${p[0]}" y="${p[1]-4}" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">${esc(n.label.length>24?n.label.slice(0,23)+'…':n.label)}</text>
-            <text x="${p[0]}" y="${p[1]+12}" text-anchor="middle" fill="#cbd5e1" font-size="10">${esc(n.sub.length>28?n.sub.slice(0,27)+'…':n.sub)}</text></g>`; });
-    svg += `</svg>`;
-    $("#p-path").innerHTML = `<div class="card-custom"><div class="section-title">${g.incident}: how the attacker got from one phishing email to 2.4 GB leaving SRV-FS01</div>${svg}
-        <div class="muted mt-2" style="font-size:12px">Red = attacker action, blue = victim, grey = asset reached. Click a box to open its source line. Links between boxes that need a guess (for example "she typed her password") are marked Suspected in the Evidence tab.</div></div>`;
+            <text x="${p[0]}" y="${p[1]+12}" text-anchor="middle" fill="#cbd5e1" font-size="10" class="sub">${esc(n.sub.length>28?n.sub.slice(0,27)+'…':n.sub)}</text></g>`; });
+    svg += `<text id="clk" x="880" y="30" text-anchor="end" fill="#93c5fd" font-size="22" font-weight="700" font-family="Consolas,monospace">--:--:-- UTC</text>
+            <text id="gb" x="760" y="238" text-anchor="middle" fill="#fca5a5" font-size="15" font-weight="800"></text></svg>`;
+    $("#p-path").innerHTML = `<div class="card-custom"><div class="section-title">${g.incident}: from one phishing email to 2.4 GB leaving SRV-FS01 (animated)</div>
+        <div class="d-flex gap-2 align-items-center flex-wrap mb-2">
+          <button class="btn-pilot btn-blue" id="pPlay">▶ Play story</button><button class="btn-pilot btn-ghost" id="pStep">Next step ⏭</button><button class="btn-pilot btn-ghost" id="pReset">↺ Reset</button>
+          <label class="muted" style="font-size:13px">Speed <select id="pSpeed" style="background:#0f172a;color:#e5e7eb;border:1px solid #334155;border-radius:8px;padding:4px"><option value="1.6">Slow</option><option value="1" selected>Normal</option><option value="0.5">Fast</option></select></label>
+          <span class="muted" style="font-size:12px" id="pCount"></span></div>
+        <div id="pCap" class="answer" style="margin:0 0 10px;min-height:56px;font-size:15px;color:#f1f5f9"></div>${svg}
+        <div class="muted mt-2" style="font-size:12px">Red arrows = attacker moves, blue = victim, grey = systems reached. Click any box to see its source log line. Steps that need a guess (e.g. that she typed her password) are labelled Suspected in the Evidence tab.</div></div>`;
+    document.getElementById("pPlay").onclick = pathPlayPause;
+    document.getElementById("pStep").onclick = () => { pathPause(); pathNext(); };
+    document.getElementById("pReset").onclick = () => { pathPause(); pathReset(); };
+    document.getElementById("pSpeed").onchange = e => { pathState.speed = +e.target.value; if (pathState.timer) { pathPause(); pathPlayPause(); } };
     $("#p-path").querySelectorAll(".nd").forEach(n => n.onclick = () => n.dataset.ref && showCite(n.dataset.ref));
+    pathReset();
+}
+function pathReset() {
+    pathState.step = -1;
+    document.querySelectorAll("#p-path .nd").forEach(n => { n.style.opacity = ".18"; n.classList.remove("pulse"); });
+    document.querySelectorAll("#p-path .edge").forEach(e => { e.style.opacity = "0"; e.style.strokeDasharray = ""; e.classList.remove("flow"); });
+    document.getElementById("clk").textContent = "--:--:-- UTC"; document.getElementById("gb").textContent = "";
+    document.getElementById("pCap").textContent = "Press Play story to watch the attack unfold in the order the logs show it.";
+    document.getElementById("pCount").textContent = `0 / ${PATH_STEPS.length}`;
+    document.getElementById("pPlay").textContent = "▶ Play story";
+}
+function pathNext() {
+    if (pathState.step >= PATH_STEPS.length - 1) { pathPause(); document.getElementById("pPlay").textContent = "↻ Replay"; return; }
+    pathState.step++;
+    const s = PATH_STEPS[pathState.step];
+    document.querySelectorAll("#p-path .nd.pulse").forEach(n => n.classList.remove("pulse"));
+    s.nodes.forEach(id => { const n = document.getElementById("n-" + id); if (n) { n.style.opacity = "1"; n.classList.add("pulse"); } });
+    s.edges.forEach(([, a, b]) => { const e = document.getElementById(`e-${a}-${b}`); if (e) { e.style.opacity = "1"; e.style.strokeDasharray = "8 6"; e.classList.add("flow"); } });
+    document.getElementById("clk").textContent = s.t + " UTC";
+    document.getElementById("pCap").innerHTML = `<b style="color:#93c5fd">${s.t} UTC</b> - ${esc(s.cap)}`;
+    document.getElementById("pCount").textContent = `${pathState.step + 1} / ${PATH_STEPS.length}`;
+    if (s.bytes) { let v = 0; const tgt = 2.41, el = document.getElementById("gb"); const iv = setInterval(() => { v += 0.06; if (v >= tgt) { v = tgt; clearInterval(iv); } el.textContent = v.toFixed(2) + " GB"; }, 40); }
+    if (pathState.step === PATH_STEPS.length - 1) { pathPause(); document.getElementById("pPlay").textContent = "↻ Replay"; }
+}
+function pathPause() { clearInterval(pathState.timer); pathState.timer = null; const b = document.getElementById("pPlay"); if (b && pathState.step < PATH_STEPS.length - 1) b.textContent = "▶ Play story"; }
+function pathPlayPause() {
+    if (pathState.timer) { pathPause(); return; }
+    if (pathState.step >= PATH_STEPS.length - 1) pathReset();
+    document.getElementById("pPlay").textContent = "⏸ Pause";
+    pathNext();
+    pathState.timer = setInterval(pathNext, 3500 * pathState.speed);
 }
 
 function evidence() {
