@@ -1,0 +1,12 @@
+<div class="sidebar">
+    <div class="sidebar-title">✈ IncidentPilot</div>
+
+    <a href="/" class="sidebar-link">Dashboard</a>
+    <a href="/incidents" class="sidebar-link {% if active == 'incidents' %}active{% endif %}">Incidents{% if open_incident_count %} <span class="nav-badge">{{ open_incident_count }}</span>{% endif %}</a>
+    <a href="/pack" class="sidebar-link {% if active == 'pack' %}active{% endif %}">Orbit Triage</a>
+    <a href="/ip-lists" class="sidebar-link">IP Lists</a>
+    <a href="/blocked-ips" class="sidebar-link">Blocked IPs</a>
+    <a href="/logs" class="sidebar-link">Logs</a>
+    <a href="/settings" class="sidebar-link">Settings</a>
+    <a href="/logout" class="sidebar-link logout">Logout</a>
+</div>

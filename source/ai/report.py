@@ -1,0 +1,120 @@
+"""
+One-click incident report (Markdown; the dashboard renders it as a printable
+page so it can be saved as PDF from the browser).
+
+Facts (timeline, IPs, MITRE, decision) are filled from the database so they are
+always correct; the AI only writes the narrative sections.
+"""
+import db
+from ai import llm
+from ai.triage import triage_as_json
+
+PRIORITY_LABEL = {"P1": "P1 - Critical", "P2": "P2 - High", "P3": "P3 - Medium", "P4": "P4 - Low"}
+VERDICT_LABEL = {
+    "true_positive": "True positive",
+    "likely_false_positive": "Likely false positive",
+    "needs_review": "Needs review",
+}
+
+
+def _t(value):
+    return value.strftime("%Y-%m-%d %H:%M:%S") if hasattr(value, "strftime") else str(value or "-")
+
+
+def _offline_narrative(inc, alerts):
+    impact = ("No evidence of successful compromise was recorded by the sensor; the activity was limited "
+              "to the attempts listed in the timeline.")
+    if inc.get("ai_verdict") == "likely_false_positive":
+        impact = "Assessed as benign activity; no impact expected."
+    return {
+        "executive_summary": inc.get("ai_summary") or "Not triaged yet.",
+        "impact": impact,
+        "recommendations": "\n".join(f"- {s}" for s in (inc.get("ai_next_steps") or [])) or "- Monitor this source.",
+    }
+
+
+def _ai_narrative(inc, alerts):
+    alert_lines = "\n".join(
+        f"alert #{a['id']} {_t(a['detected_at'])} {a['attack_type']} {a['severity']} {a['description']}"
+        for a in alerts
+    )
+    data = llm.complete_json(
+        "You are Pilot, a SOC analyst writing a short incident report for a manager. Use ONLY the data "
+        "given; cite alerts as 'alert #<id>'. Return JSON with keys: executive_summary (2-3 sentences), "
+        "impact (1-3 sentences, say clearly if there is no evidence of compromise), recommendations "
+        "(markdown bullet list, max 5 bullets).",
+        f"Incident triage:\n{triage_as_json(inc)}\n\nAlerts:\n{alert_lines}",
+    )
+    recs = data.get("recommendations")
+    if isinstance(recs, list):
+        recs = "\n".join(f"- {r}" for r in recs)
+    return {
+        "executive_summary": str(data.get("executive_summary") or ""),
+        "impact": str(data.get("impact") or ""),
+        "recommendations": str(recs or ""),
+    }
+
+
+def build_report_markdown(incident_id):
+    inc = db.get_incident(incident_id)
+    if not inc:
+        return None
+    alerts = db.get_incident_alerts(incident_id)
+
+    engine = "Pilot offline engine"
+    narrative = _offline_narrative(inc, alerts)
+    if llm.is_enabled():
+        try:
+            ai_text = _ai_narrative(inc, alerts)
+            narrative = {k: (ai_text.get(k) or narrative[k]) for k in narrative}
+            engine = llm.engine_name()
+        except Exception as error:
+            print("[REPORT] LLM failed, using offline narrative:", error)
+
+    decision = {
+        "new": "Pending analyst decision",
+        "approved": "Approved - confirmed true positive" + (" (IP blocked)" if db.is_ip_blocked(inc["source_ip"]) else ""),
+        "dismissed": "Dismissed - false positive",
+    }.get(inc["analyst_status"], inc["analyst_status"])
+
+    lines = [
+        f"# Incident Report - INC-{inc['id']}",
+        "",
+        "| Field | Value |",
+        "|---|---|",
+        f"| Source IP | `{inc['source_ip']}` |",
+        f"| First seen | {_t(inc['first_seen'])} |",
+        f"| Last seen | {_t(inc['last_seen'])} |",
+        f"| Alerts | {inc['alert_count']} |",
+        f"| Attack types | {', '.join(inc['attack_type_list'])} |",
+        f"| AI priority | {PRIORITY_LABEL.get(inc.get('ai_priority'), 'Not triaged')} |",
+        f"| AI verdict | {VERDICT_LABEL.get(inc.get('ai_verdict'), '-')} "
+        f"({round((inc.get('ai_confidence') or 0) * 100)}% confidence) |",
+        f"| Analyst decision | {decision} |",
+        "",
+        "## Executive summary",
+        narrative["executive_summary"],
+        "",
+        "## Timeline",
+        "| Time | Alert | Type | Severity | Target | Status |",
+        "|---|---|---|---|---|---|",
+    ]
+    for a in alerts:
+        target = f"{a['target_ip'] or '-'}:{a['target_port'] or '-'}"
+        lines.append(f"| {_t(a['detected_at'])} | #{a['id']} | {a['attack_type']} | {a['severity']} | "
+                     f"{target} | {a['status']} |")
+
+    lines += ["", "## Impact", narrative["impact"], "", "## MITRE ATT&CK"]
+    for m in inc.get("ai_mitre") or []:
+        if isinstance(m, dict):
+            lines.append(f"- **{m.get('id')}** {m.get('name', '')}")
+    lines += ["", "## Evidence"]
+    lines += [f"- {e}" for e in inc.get("ai_evidence") or []] or ["- None recorded"]
+    lines += ["", "## Actions taken", f"- {decision}"]
+    if inc.get("analyst_notes"):
+        lines.append(f"- Analyst notes: {inc['analyst_notes']}")
+    if inc.get("decided_by"):
+        lines.append(f"- Decided by {inc['decided_by']} at {_t(inc.get('decided_at'))}")
+    lines += ["", "## Recommendations", narrative["recommendations"], "",
+              "---", f"*Generated by IncidentPilot ({engine}). Facts from the IDS database; narrative is AI-written - verify before sharing.*"]
+    return "\n".join(lines)

@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IncidentPilot - Incident Queue</title>
+    {% include "_pilot_styles.html" %}
+    <style>
+        .tabs { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+        .tab { padding: 8px 14px; border-radius: 10px; background: #111827; border: 1px solid #1f2937; color: #cbd5e1; text-decoration: none; font-weight: 700; font-size: 14px; }
+        .tab.active { background: #2563eb; color: #fff; border-color: #2563eb; }
+        .tab .n { opacity: .75; margin-left: 4px; }
+        .summary-cell { max-width: 420px; color: #cbd5e1; }
+        .rec { font-weight: 700; font-size: 13px; }
+        .rec.block_ip { color: #fca5a5; } .rec.monitor { color: #fcd34d; } .rec.no_action { color: #86efac; }
+    </style>
+</head>
+<body>
+    {% set active = 'incidents' %}
+    {% include "_sidebar.html" %}
+
+    <div class="container-fluid py-4 px-4 main-content">
+        <div class="page-title">Incident Queue</div>
+        <div class="page-subtitle">Alerts grouped into incidents and triaged by Pilot. Most urgent first.</div>
+
+        {% if demo_mode %}<div class="demo-banner">Demo mode: firewall actions are simulated (no iptables changes). AI engine: <b>{{ pilot_engine }}</b></div>{% endif %}
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for category, message in messages %}<div class="flash {{ category }}">{{ message }}</div>{% endfor %}
+        {% endwith %}
+
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+            <div class="tabs">
+                <a class="tab {% if status == 'new' %}active{% endif %}" href="/incidents?status=new">Open<span class="n">{{ counts.new }}</span></a>
+                <a class="tab {% if status == 'approved' %}active{% endif %}" href="/incidents?status=approved">Approved<span class="n">{{ counts.approved }}</span></a>
+                <a class="tab {% if status == 'dismissed' %}active{% endif %}" href="/incidents?status=dismissed">Dismissed<span class="n">{{ counts.dismissed }}</span></a>
+                <a class="tab {% if status == 'all' %}active{% endif %}" href="/incidents?status=all">All</a>
+            </div>
+            <div class="d-flex gap-2 align-items-center">
+                <form method="GET" class="d-flex gap-2">
+                    <input type="hidden" name="status" value="{{ status }}">
+                    <select name="priority" onchange="this.form.submit()" style="background:#0f172a;color:#e5e7eb;border:1px solid #334155;border-radius:10px;padding:8px;">
+                        <option value="">All priorities</option>
+                        {% for p in ["P1","P2","P3","P4"] %}<option value="{{ p }}" {% if priority == p %}selected{% endif %}>{{ p }}</option>{% endfor %}
+                    </select>
+                </form>
+                <form method="POST" action="/incidents/triage-pending">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button class="btn-pilot btn-blue" type="submit">✈ Triage pending</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card-custom">
+            <div style="overflow-x:auto;">
+            <table class="table-dark-custom">
+                <thead>
+                    <tr>
+                        <th>Priority</th><th>Incident</th><th>Source IP</th><th>Attack types</th><th>Alerts</th>
+                        <th>AI verdict</th><th>Pilot's summary</th><th>Recommendation</th><th>Last seen</th><th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for inc in incidents %}
+                    <tr class="row-link" onclick="location.href='/incidents/{{ inc.id }}'">
+                        <td>{% if inc.ai_priority %}<span class="prio {{ priority_class[inc.ai_priority] }}">{{ inc.ai_priority }}</span>{% else %}<span class="prio none">…</span>{% endif %}</td>
+                        <td><b>INC-{{ inc.id }}</b></td>
+                        <td><code style="color:#93c5fd">{{ inc.source_ip }}</code></td>
+                        <td>{% for t in inc.attack_type_list %}<span class="tag">{{ t }}</span>{% endfor %}</td>
+                        <td>{{ inc.alert_count }}</td>
+                        <td>
+                            {% if inc.ai_verdict == 'true_positive' %}<span class="pill tp">True positive</span>
+                            {% elif inc.ai_verdict == 'likely_false_positive' %}<span class="pill fp">Likely FP</span>
+                            {% elif inc.ai_verdict == 'needs_review' %}<span class="pill review">Needs review</span>
+                            {% else %}<span class="muted">Triaging…</span>{% endif %}
+                            {% if inc.ai_confidence %}<div class="muted" style="font-size:12px;margin-top:4px;">{{ (inc.ai_confidence * 100)|round|int }}% conf.</div>{% endif %}
+                        </td>
+                        <td class="summary-cell">{{ (inc.ai_summary or '')[:180] }}{% if (inc.ai_summary or '')|length > 180 %}…{% endif %}</td>
+                        <td>
+                            {% if inc.ai_recommended_action %}
+                            <span class="rec {{ inc.ai_recommended_action }}">{{ {'block_ip':'Block IP','monitor':'Monitor','no_action':'No action'}[inc.ai_recommended_action] }}</span>
+                            {% endif %}
+                            {% if inc.ai_feedback_used %}<div class="muted" style="font-size:12px;margin-top:4px;">🧠 used past feedback</div>{% endif %}
+                        </td>
+                        <td style="white-space:nowrap;">{{ inc.last_seen|ts }}</td>
+                        <td><span class="pill status-{{ inc.analyst_status }}">{{ inc.analyst_status|capitalize }}</span></td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="10" class="muted" style="font-style:italic;">No incidents here. Run <code>python source/replay.py</code> to load the demo attack scenario.</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Live queue: reload when new alerts arrive or triage finishes.
+        let lastKey = null;
+        async function pollQueue() {
+            try {
+                const r = await fetch("/api/incidents/summary");
+                if (!r.ok) return;
+                const d = await r.json();
+                const key = [d.count, d.max_id, d.alerts, d.pending_triage].join("-");
+                if (lastKey && key !== lastKey && !document.querySelector(".pilot-panel.open")) location.reload();
+                lastKey = key;
+            } catch (e) {}
+        }
+        pollQueue();
+        setInterval(pollQueue, 5000);
+    </script>
+
+    {% include "_pilot_widget.html" %}
+</body>
+</html>

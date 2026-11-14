@@ -1,0 +1,267 @@
+{# "Ask Pilot" floating assistant - included on every logged-in page.
+   Context: pilot_page (dashboard / incidents / incident / blocked / logs / ip_lists / settings)
+            pilot_incident_id (on an incident page) #}
+<style>
+    .nav-badge { background: #dc2626; color: #fff; border-radius: 999px; padding: 1px 8px; font-size: 12px; margin-left: 6px; }
+
+    .pilot-dock { position: fixed; right: 22px; bottom: 26px; z-index: 3000; display: flex; flex-direction: column; gap: 6px;
+        background: #0b0f19; border: 1px solid #334155; border-radius: 22px; padding: 6px; box-shadow: 0 10px 30px rgba(0,0,0,.45); }
+    .pilot-dock button { width: 50px; height: 50px; border-radius: 16px; border: 0; cursor: pointer; font-size: 22px; position: relative; }
+    .pilot-dock .pd-main { background: #f8fafc; color: #111827; }
+    .pilot-dock .pd-agents { background: #1f2937; color: #e5e7eb; font-size: 18px; }
+    .pilot-dock button:hover { transform: scale(1.05); }
+    .pilot-dock .pd-tip { position: absolute; right: 62px; top: 50%; transform: translateY(-50%); background: #111827; color: #fff;
+        padding: 7px 12px; border-radius: 8px; font-size: 13px; white-space: nowrap; font-weight: 600; display: none; border: 1px solid #334155; }
+    .pilot-dock button:hover .pd-tip { display: block; }
+    .pilot-dot { position: absolute; top: 6px; right: 6px; width: 10px; height: 10px; border-radius: 50%; background: #ef4444; border: 2px solid #f8fafc; }
+
+    .pilot-panel { position: fixed; right: 92px; bottom: 26px; width: 410px; max-width: calc(100vw - 110px); height: 600px; max-height: calc(100vh - 50px);
+        background: #0f172a; border: 1px solid #334155; border-radius: 18px; box-shadow: 0 18px 50px rgba(0,0,0,.55); z-index: 3000;
+        display: none; flex-direction: column; overflow: hidden; color: #e5e7eb; font-family: Arial, sans-serif; }
+    .pilot-panel.open { display: flex; }
+    .pp-head { padding: 14px 16px 10px; background: linear-gradient(135deg, #1e1b4b, #0f172a); border-bottom: 1px solid #1f2937; }
+    .pp-title { display: flex; align-items: center; justify-content: space-between; }
+    .pp-title b { font-size: 16px; }
+    .pp-title small { color: #a5b4fc; font-size: 11px; display: block; font-weight: 500; }
+    .pp-close { background: none; border: 0; color: #94a3b8; font-size: 20px; cursor: pointer; }
+    .pp-agents { display: flex; gap: 6px; margin-top: 10px; }
+    .pp-agent { flex: 1; background: #1f2937; color: #cbd5e1; border: 1px solid #334155; border-radius: 10px; padding: 6px 4px; font-size: 12px; font-weight: 700; cursor: pointer; }
+    .pp-agent.active { background: #4f46e5; color: #fff; border-color: #4f46e5; }
+    .pp-body { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+    .pp-msg { max-width: 92%; padding: 10px 12px; border-radius: 14px; font-size: 14px; line-height: 1.45; word-wrap: break-word; }
+    .pp-msg.user { align-self: flex-end; background: #2563eb; color: #fff; border-bottom-right-radius: 4px; }
+    .pp-msg.bot { align-self: flex-start; background: #1e293b; border: 1px solid #334155; border-bottom-left-radius: 4px; }
+    .pp-msg.bot p { margin: 0 0 8px; } .pp-msg.bot p:last-child { margin: 0; }
+    .pp-msg.bot ul, .pp-msg.bot ol { padding-left: 18px; margin: 4px 0 8px; }
+    .pp-msg.bot table { font-size: 12px; border-collapse: collapse; margin: 6px 0; }
+    .pp-msg.bot th, .pp-msg.bot td { border: 1px solid #334155; padding: 3px 6px; }
+    .pp-msg.bot h1 { font-size: 16px; } .pp-msg.bot h2 { font-size: 14px; color: #a5b4fc; margin-top: 10px; }
+    .pp-msg.bot a { color: #93c5fd; }
+    .pp-msg.bot code { color: #93c5fd; }
+    .pp-engine { font-size: 11px; color: #64748b; margin-top: 6px; }
+    .pp-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .pp-actions button { border: 0; border-radius: 8px; padding: 6px 10px; font-size: 12px; font-weight: 700; cursor: pointer; color: #fff; background: #334155; }
+    .pp-actions .a-approve { background: #dc2626; } .pp-actions .a-open { background: #2563eb; } .pp-actions .a-report { background: #4f46e5; }
+    .pp-quick { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 14px 10px; }
+    .pp-quick button { background: #111827; border: 1px solid #334155; color: #c7d2fe; border-radius: 999px; padding: 5px 11px; font-size: 12px; cursor: pointer; }
+    .pp-quick button:hover { background: #1e293b; }
+    .pp-input { display: flex; gap: 8px; padding: 10px 12px 12px; border-top: 1px solid #1f2937; }
+    .pp-input input { flex: 1; background: #020617; border: 1px solid #334155; color: #e5e7eb; border-radius: 12px; padding: 10px 12px; font-size: 14px; }
+    .pp-input button { background: #4f46e5; color: #fff; border: 0; border-radius: 12px; padding: 0 16px; font-weight: 700; cursor: pointer; }
+    .pp-typing { color: #94a3b8; font-size: 13px; font-style: italic; }
+
+    .pilot-toasts { position: fixed; top: 18px; right: 22px; z-index: 3500; display: flex; flex-direction: column; gap: 10px; width: 360px; max-width: calc(100vw - 40px); }
+    .pilot-toast { background: #450a0a; border: 1px solid #ef4444; color: #fee2e2; border-radius: 14px; padding: 12px 14px;
+        box-shadow: 0 12px 30px rgba(0,0,0,.5); font-size: 14px; animation: pt-in .35s ease-out; }
+    .pilot-toast b { color: #fff; }
+    .pilot-toast .pt-actions { margin-top: 8px; display: flex; gap: 8px; }
+    .pilot-toast a, .pilot-toast button { background: #dc2626; color: #fff; border: 0; border-radius: 8px; padding: 5px 10px; font-size: 12px; font-weight: 700; text-decoration: none; cursor: pointer; }
+    .pilot-toast button { background: #7f1d1d; }
+    @keyframes pt-in { from { transform: translateY(-12px); opacity: 0; } to { transform: none; opacity: 1; } }
+</style>
+
+<div class="pilot-toasts" id="pilotToasts"></div>
+
+<div class="pilot-dock">
+    <button class="pd-main" onclick="pilotToggle('triage')" aria-label="Ask Pilot">✈
+        {% if open_incident_count %}<span class="pilot-dot"></span>{% endif %}
+        <span class="pd-tip">Ask Pilot</span>
+    </button>
+    <button class="pd-agents" onclick="pilotToggle('agents')" aria-label="Agents for triage">⠿
+        <span class="pd-tip">Agents for triage</span>
+    </button>
+</div>
+
+<div class="pilot-panel" id="pilotPanel">
+    <div class="pp-head">
+        <div class="pp-title">
+            <div><b>✈ Ask Pilot</b><small>{{ pilot_engine }} · answers from your live IDS data</small></div>
+            <button class="pp-close" onclick="pilotToggle()">×</button>
+        </div>
+        <div class="pp-agents">
+            <button class="pp-agent active" data-agent="triage" onclick="pilotSetAgent('triage')">🛡 Triage</button>
+            <button class="pp-agent" data-agent="report" onclick="pilotSetAgent('report')">📄 Report</button>
+            <button class="pp-agent" data-agent="briefing" onclick="pilotSetAgent('briefing')">☀ Briefing</button>
+        </div>
+    </div>
+    <div class="pp-body" id="pilotBody"></div>
+    <div class="pp-quick" id="pilotQuick"></div>
+    <form class="pp-input" onsubmit="pilotSend(); return false;">
+        <input id="pilotInput" type="text" placeholder="Ask about incidents, IPs, alerts…" autocomplete="off">
+        <button type="submit">Send</button>
+    </form>
+</div>
+
+<script>
+// CSRF: add the session token to every same-origin non-GET fetch() on the page.
+(function () {
+    const TOKEN = {{ csrf_token()|tojson }};
+    const origFetch = window.fetch;
+    window.fetch = function (url, opts) {
+        opts = opts || {};
+        const method = (opts.method || "GET").toUpperCase();
+        const sameOrigin = typeof url === "string" && (url.startsWith("/") || url.startsWith(location.origin));
+        if (method !== "GET" && sameOrigin) {
+            opts.headers = Object.assign({}, opts.headers || {}, { "X-CSRF-Token": TOKEN });
+        }
+        return origFetch(url, opts);
+    };
+})();
+
+(function () {
+    const PAGE = {{ (pilot_page or 'dashboard')|tojson }};
+    const INCIDENT_ID = {{ (pilot_incident_id if pilot_incident_id is defined else none)|tojson }};
+    const STORE_KEY = "pilot-chat-v1";
+    let agent = "triage";
+
+    const QUICK = {
+        triage: {
+            dashboard: ["What's most urgent?", "What happened in the last hour?", "Which IP is most dangerous?"],
+            incidents: ["Which IP is most dangerous?", "What happened in the last hour?", "Are my thresholds too noisy?"],
+            incident: ["Explain this incident", "Is this a false positive?", "What should I do next?"],
+            blocked: ["Which IP is most dangerous?", "What happened in the last hour?"],
+            logs: ["Find patterns in recent logs", "Which IP is most dangerous?"],
+            ip_lists: ["Which IP is most dangerous?", "Are my thresholds too noisy?"],
+            settings: ["Are my thresholds too noisy?", "What happened in the last hour?"],
+        },
+        report: { _: INCIDENT_ID ? ["Write the report for this incident"] : ["Write a report for the most urgent incident"] },
+        briefing: { _: ["Brief me on today", "What should I do first?"] },
+    };
+
+    const panel = document.getElementById("pilotPanel");
+    const body = document.getElementById("pilotBody");
+    const input = document.getElementById("pilotInput");
+
+    function save() { try { sessionStorage.setItem(STORE_KEY, body.innerHTML); } catch (e) {} }
+    function load() {
+        try { const h = sessionStorage.getItem(STORE_KEY); if (h) { body.innerHTML = h; bindActions(body); return true; } } catch (e) {}
+        return false;
+    }
+    function esc(t) { const d = document.createElement("div"); d.textContent = t; return d.innerHTML; }
+    function scroll() { body.scrollTop = body.scrollHeight; }
+
+    function addUser(text) {
+        body.insertAdjacentHTML("beforeend", `<div class="pp-msg user">${esc(text)}</div>`); scroll(); save();
+    }
+    function addBot(html, actions, engine) {
+        const linked = html.replace(/\[?INC-(\d+)\]?/g, (m, id) => `<a href="/incidents/${id}">INC-${id}</a>`);
+        const btns = (actions || []).map(a =>
+            `<button class="a-${a.type}" data-type="${a.type}" data-id="${a.incident_id}" data-url="${esc(a.url || "")}">${esc(a.label)}</button>`).join("");
+        const el = document.createElement("div");
+        el.className = "pp-msg bot";
+        el.innerHTML = linked + (btns ? `<div class="pp-actions">${btns}</div>` : "") +
+                       (engine ? `<div class="pp-engine">${esc(engine)}</div>` : "");
+        body.appendChild(el); bindActions(el); scroll(); save();
+    }
+
+    function bindActions(root) {
+        root.querySelectorAll(".pp-actions button").forEach(b => b.onclick = () => b.dataset.type === "link" ? (location.href = b.dataset.url) : runAction(b.dataset.type, b.dataset.id, b));
+    }
+
+    async function runAction(type, id, btn) {
+        if (type === "open") { location.href = "/incidents/" + id; return; }
+        if (type === "report") { window.open("/incidents/" + id + "/report", "_blank"); return; }
+        let payload = {};
+        if (type === "approve") {
+            payload = { block: true, notes: "Approved from Ask Pilot" };
+        } else if (type === "dismiss") {
+            const notes = prompt("Why is this a false positive? (Pilot learns from your answer)", "");
+            if (notes === null) return;
+            payload = { notes: notes || "Dismissed from Ask Pilot" };
+        }
+        btn.disabled = true;
+        try {
+            const r = await fetch(`/incidents/${id}/${type}`, {
+                method: "POST", headers: { "Content-Type": "application/json", "X-Requested-With": "fetch" },
+                body: JSON.stringify(payload),
+            });
+            const d = await r.json();
+            addBot(`<p>${d.ok ? "✅" : "⚠️"} ${esc(d.message)}</p>`, [{ type: "open", incident_id: id, label: `Open INC-${id}` }]);
+            btn.closest(".pp-actions").querySelectorAll(".a-approve, .a-dismiss").forEach(x => x.remove());
+        } catch (e) { addBot("<p>Action failed. Try again from the incident page.</p>"); }
+    }
+
+    function renderQuick() {
+        const set = QUICK[agent][PAGE] || QUICK[agent]._ || QUICK.triage.dashboard;
+        document.getElementById("pilotQuick").innerHTML = set.map(q => `<button type="button">${esc(q)}</button>`).join("");
+        document.querySelectorAll("#pilotQuick button").forEach(b => b.onclick = () => window.pilotAsk(b.textContent));
+    }
+
+    window.pilotSetAgent = function (a) {
+        agent = a;
+        document.querySelectorAll(".pp-agent").forEach(b => b.classList.toggle("active", b.dataset.agent === a));
+        input.placeholder = { triage: "Ask about incidents, IPs, alerts…", report: "e.g. Write a report for INC-2",
+                              briefing: "e.g. Brief me on today" }[a];
+        renderQuick();
+    };
+
+    window.pilotToggle = function (mode) {
+        if (!mode) { panel.classList.remove("open"); return; }
+        const opening = !panel.classList.contains("open") || mode === "agents";
+        panel.classList.add("open");
+        if (mode === "agents") {
+            addBot("<p><b>Pick an agent:</b> 🛡 <b>Triage</b> explains and prioritises incidents · 📄 <b>Report</b> writes incident reports · ☀ <b>Briefing</b> summarises your day.</p>");
+        }
+        if (opening && !body.children.length) {
+            addBot(`<p>Hi, I'm <b>Pilot</b>. I read your live alerts and incidents. Ask me anything, or tap a suggestion below.</p>`);
+        }
+        input.focus();
+    };
+
+    window.pilotAsk = function (q) {
+        panel.classList.add("open");
+        input.value = q;
+        window.pilotSend();
+    };
+
+    window.pilotSend = async function () {
+        const text = input.value.trim();
+        if (!text) return;
+        input.value = "";
+        addUser(text);
+        const typing = document.createElement("div");
+        typing.className = "pp-typing"; typing.textContent = "Pilot is thinking…";
+        body.appendChild(typing); scroll();
+        try {
+            const r = await fetch("/api/pilot/chat", {
+                method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ message: text, page: PAGE, incident_id: INCIDENT_ID, agent }),
+            });
+            const d = await r.json();
+            typing.remove();
+            addBot(d.answer_html || "<p>(no answer)</p>", d.actions, d.engine);
+        } catch (e) {
+            typing.remove();
+            addBot("<p>Couldn't reach Pilot. Is the server running?</p>");
+        }
+    };
+
+    load();
+    renderQuick();
+
+    // P1 toasts: show each open P1 incident once per browser session.
+    const SEEN_KEY = "pilot-seen-p1";
+    function seen() { try { return JSON.parse(sessionStorage.getItem(SEEN_KEY) || "[]"); } catch (e) { return []; } }
+    function markSeen(id) { try { const s = seen(); s.push(id); sessionStorage.setItem(SEEN_KEY, JSON.stringify(s)); } catch (e) {} }
+    async function pollCritical() {
+        try {
+            const r = await fetch("/api/alerts/critical");
+            if (!r.ok) return;
+            const items = await r.json();
+            const already = seen();
+            items.filter(i => !already.includes(i.id)).slice(0, 3).forEach(i => {
+                markSeen(i.id);
+                const t = document.createElement("div");
+                t.className = "pilot-toast";
+                t.innerHTML = `🚨 <b>New P1 · INC-${i.id}</b> from <b>${esc(i.source_ip)}</b><br>${esc(i.summary)}
+                    <div class="pt-actions"><a href="/incidents/${i.id}">Open</a><button type="button">Dismiss</button></div>`;
+                t.querySelector("button").onclick = () => t.remove();
+                document.getElementById("pilotToasts").appendChild(t);
+                setTimeout(() => t.remove(), 15000);
+            });
+        } catch (e) {}
+    }
+    pollCritical();
+    setInterval(pollCritical, 8000);
+})();
+</script>

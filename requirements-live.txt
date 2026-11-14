@@ -1,0 +1,3 @@
+# Extra packages for the live packet sensor / PostgreSQL (not needed for the demo or Vercel)
+scapy==2.7.0
+psycopg2-binary==2.9.12

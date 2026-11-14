@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IncidentPilot - Orbit Triage</title>
+    {% include "_pilot_styles.html" %}
+    <style>
+        .tabs { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+        .tab { padding: 8px 14px; border-radius: 10px; background: #111827; border: 1px solid #1f2937; color: #cbd5e1; font-weight: 700; font-size: 14px; cursor: pointer; }
+        .tab.active { background: #2563eb; color: #fff; border-color: #2563eb; }
+        .panel { display: none; } .panel.active { display: block; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 16px; }
+        .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 18px; }
+        .kpi { background: #111827; border: 1px solid #1f2937; border-radius: 14px; padding: 14px; }
+        .kpi b { font-size: 26px; display: block; color: #fff; } .kpi span { color: #94a3b8; font-size: 12px; }
+        .inc-card { cursor: pointer; border-left: 5px solid #475569; }
+        .inc-card.p1 { border-left-color: #dc2626; } .inc-card.p2 { border-left-color: #ea580c; } .inc-card.p3 { border-left-color: #ca8a04; }
+        .inc-card h5 { color: #fff; font-size: 16px; margin: 8px 0; }
+        .cite { display: inline-block; background: #1e293b; color: #93c5fd; border: 1px solid #334155; border-radius: 6px; padding: 0 6px; font-size: 11px; margin: 1px 2px; cursor: pointer; font-family: Consolas, monospace; }
+        .cite:hover { background: #2563eb; color: #fff; }
+        .lbl { display: inline-block; font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 999px; margin-right: 6px; text-transform: uppercase; }
+        .lbl.confirmed { background: rgba(34,197,94,.15); color: #86efac; } .lbl.suspected { background: rgba(245,158,11,.18); color: #fcd34d; }
+        .lbl.not_enough { background: rgba(148,163,184,.18); color: #cbd5e1; }
+        .ev { border-left: 3px solid #334155; padding: 8px 12px; margin: 0 0 8px 6px; background: #0f172a; border-radius: 0 10px 10px 0; font-size: 13px; }
+        .ev.confirmed { border-left-color: #22c55e; } .ev.suspected { border-left-color: #f59e0b; } .ev.not_enough { border-left-color: #94a3b8; }
+        .ev .t { color: #93c5fd; font-weight: 700; font-family: Consolas, monospace; } .ev .t small { color: #64748b; }
+        .src { font-size: 11px; color: #94a3b8; background: #1f2937; border-radius: 4px; padding: 1px 6px; margin-left: 4px; }
+        .filters { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+        .chip { padding: 4px 10px; border-radius: 999px; border: 1px solid #334155; color: #cbd5e1; font-size: 12px; cursor: pointer; background: #0f172a; }
+        .chip.on { background: #2563eb; border-color: #2563eb; color: #fff; }
+        .sec-title { color: #fff; font-weight: 700; margin: 18px 0 8px; }
+        .step { font-size: 13px; color: #cbd5e1; margin-left: 14px; }
+        .strip { position: relative; height: 22px; background: #1f2937; border-radius: 6px; margin: 4px 0 14px; overflow: hidden; }
+        .strip .cov { position: absolute; top: 0; bottom: 0; background: #166534; }
+        .strip .mk { position: absolute; top: 0; bottom: 0; width: 4px; border-radius: 2px; }
+        .strip .gap { position: absolute; top: 0; bottom: 0; background: repeating-linear-gradient(45deg,#7f1d1d,#7f1d1d 4px,#450a0a 4px,#450a0a 8px); }
+        .axis { display: flex; justify-content: space-between; font-size: 11px; color: #64748b; margin-bottom: 14px; }
+        .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: none; align-items: center; justify-content: center; z-index: 3000; }
+        .modal-bg.open { display: flex; } .modal { background: #111827; border: 1px solid #334155; border-radius: 14px; padding: 20px; max-width: 760px; width: 92%; }
+        .modal pre { background: #0b1220; padding: 12px; border-radius: 8px; white-space: pre-wrap; word-break: break-all; color: #e5e7eb; }
+        #askBox { display: flex; gap: 8px; } #askBox input { flex: 1; }
+        .answer { background: #0f172a; border: 1px solid #1f2937; border-radius: 12px; padding: 14px; margin-top: 14px; }
+        .answer table { border-collapse: collapse; } .answer th, .answer td { border: 1px solid #334155; padding: 4px 8px; font-size: 13px; }
+        .badge-ok { background: rgba(34,197,94,.15); color: #86efac; border: 1px solid rgba(34,197,94,.4); border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 700; }
+        .clock { font-family: Consolas, monospace; font-weight: 700; }
+        .clock.late { color: #fca5a5; } .clock.soon { color: #fcd34d; }
+        svg text { font-family: Arial, sans-serif; }
+        .ok { color: #86efac; } .bad { color: #fca5a5; }
+        details summary { cursor: pointer; color: #93c5fd; }
+    </style>
+</head>
+<body>
+    {% set active = 'pack' %}
+    {% include "_sidebar.html" %}
+    <div class="container-fluid py-4 px-4 main-content">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+            <div>
+                <div class="page-title">Orbit Logistics - Incident Triage Board</div>
+                <div class="page-subtitle">Built only from the 20 data-pack files. Every claim carries a file:line or file#row citation (click a citation to see the source). All times UTC, PKT in brackets.</div>
+            </div>
+            <div class="d-flex gap-2 align-items-center">
+                <span class="badge-ok" id="citeBadge">checking citations...</span>
+                <a class="btn-pilot btn-blue" href="/pack/report" target="_blank">Full report</a>
+                <a class="btn-pilot btn-ghost" href="/pack/report.md">.md</a>
+            </div>
+        </div>
+        {% if not pack_ready %}<div class="flash error">Data pack folder not found. Put the 20 files in <code>problem_c_data/</code> or set <code>PACK_DIR</code>.</div>{% endif %}
+
+        <div class="tabs" id="tabs">
+            <div class="tab active" data-p="overview">Overview</div>
+            <div class="tab" data-p="timeline">Timeline</div>
+            <div class="tab" data-p="path">Attack path</div>
+            <div class="tab" data-p="evidence">Evidence (Confirmed / Suspected / Gaps)</div>
+            <div class="tab" data-p="act">Actions &amp; people</div>
+            <div class="tab" data-p="coverage">Log coverage</div>
+            <div class="tab" data-p="checks">Cross-checks</div>
+            <div class="tab" data-p="ask">Ask the data</div>
+        </div>
+
+        <div class="panel active" id="p-overview"></div>
+        <div class="panel" id="p-timeline"></div>
+        <div class="panel" id="p-path"></div>
+        <div class="panel" id="p-evidence"></div>
+        <div class="panel" id="p-act"></div>
+        <div class="panel" id="p-coverage"></div>
+        <div class="panel" id="p-checks"></div>
+        <div class="panel" id="p-ask">
+            <div class="card-custom">
+                <div class="section-title">Ask a question about the incident data</div>
+                <div class="muted mb-2">Answers use only the 20 files, are labelled Confirmed / Suspected / Not enough evidence, and every citation is verified.</div>
+                <form id="askBox"><input type="text" id="askInput" placeholder="e.g. Was the scan from SCAN01 approved? Who must be informed about the file server incident?" autocomplete="off"><button class="btn-pilot btn-blue" type="submit">Ask</button></form>
+                <div class="filters mt-2" id="askQuick"></div>
+                <div id="askOut"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-bg" id="modalBg"><div class="modal"><div class="d-flex justify-content-between"><b id="mTitle" style="color:#fff"></b><button class="btn-pilot btn-ghost" onclick="closeModal()">Close</button></div><pre id="mBody"></pre></div></div>
+    {% include "_pilot_widget.html" %}
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = t => String(t ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const SEV_CLASS = {P1:"p1",P2:"p2",P3:"p3",P4:"p4"};
+const SEV_COLOR = {P1:"#dc2626",P2:"#ea580c",P3:"#ca8a04",P4:"#64748b"};
+let D = null;
+
+function cites(text) {   // escape then turn [file:line] / [file#id] into clickable chips
+    return esc(text).replace(/\[(\d\d_[A-Za-z0-9_]+\.md)(?::(\d+)|#([^\]]+))\]/g, (m, f, l, r) => {
+        const ref = f + (l ? ":" + l : "#" + r);
+        const short = f.slice(0, 2) + (l ? ":" + l : "#" + r);
+        return `<span class="cite" data-ref="${esc(ref)}" title="${esc(ref)}">${esc(short)}</span>`;
+    });
+}
+const citeList = a => (a || []).map(c => cites(c)).join(" ");
+async function showCite(ref) {
+    const r = await (await fetch("/api/pack/cite?ref=" + encodeURIComponent(ref))).json();
+    $("#mTitle").textContent = ref; $("#mBody").textContent = r.found ? r.text : "Not found";
+    $("#modalBg").classList.add("open");
+}
+function closeModal() { $("#modalBg").classList.remove("open"); }
+document.addEventListener("click", e => { const c = e.target.closest(".cite"); if (c) showCite(c.dataset.ref); if (e.target.id === "modalBg") closeModal(); });
+document.querySelectorAll("#tabs .tab").forEach(t => t.onclick = () => {
+    document.querySelectorAll("#tabs .tab").forEach(x => x.classList.toggle("active", x === t));
+    document.querySelectorAll(".panel").forEach(p => p.classList.toggle("active", p.id === "p-" + t.dataset.p));
+    location.hash = t.dataset.p;
+});
+
+function overview() {
+    const inc = D.incidents, top = inc[0];
+    const counts = {P1:0,P2:0,P3:0,P4:0}; inc.forEach(i => counts[i.severity]++);
+    let h = `<div class="kpis">
+        <div class="kpi"><b style="color:${SEV_COLOR[top.severity]}">${top.severity}</b><span>overall severity (highest part)</span></div>
+        <div class="kpi"><b>${inc.length}</b><span>incidents (scored separately)</span></div>
+        <div class="kpi"><b>${D.closed.length}</b><span>closed as approved activity</span></div>
+        <div class="kpi"><b>${D.events}</b><span>log events indexed with file:line</span></div>
+        <div class="kpi"><b>${D.citations.valid}/${D.citations.total}</b><span>citations verified in the report</span></div></div>`;
+    h += `<div class="sec-title">Incidents</div><div class="grid">`;
+    inc.forEach(i => {
+        h += `<div class="card-custom inc-card ${SEV_CLASS[i.severity]}" onclick="openInc('${i.id}')">
+            <span class="prio ${SEV_CLASS[i.severity]}">${i.severity}</span> <span class="muted">${i.id}</span>
+            <h5>${esc(i.title)}</h5><div class="muted" style="font-size:13px">${cites(i.summary)}</div><div class="mt-2">
+            ${i.parts.map(p => `<span class="tag">${p.severity} · ${esc(p.name)}</span>`).join("")}</div></div>`;
+    });
+    h += `</div><div class="sec-title">Closed as harmless (approved activity - not escalated)</div><div class="grid">`;
+    D.closed.forEach(c => {
+        h += `<div class="card-custom" style="border-left:5px solid #22c55e"><span class="pill fp">${esc(c.change_id)}</span> <span class="muted">${esc(c.status)}</span>
+            <h5 style="color:#fff;font-size:16px;margin:8px 0">${esc(c.title)}</h5>
+            ${c.reasons.map(r => `<div class="step">✔ ${cites(r)}</div>`).join("")}
+            <div class="step muted mt-1">${cites(c.detail)}</div>
+            ${c.near_miss.map(n => `<div class="step muted">✘ ${esc(n)}</div>`).join("")}</div>`;
+    });
+    h += `</div>`;
+    if (D.observations.length) h += `<div class="sec-title">Other observations (no incident opened)</div>` + D.observations.map(o => `<div class="ev">${cites(o.text)} ${citeList(o.cites)}</div>`).join("");
+    $("#p-overview").innerHTML = h;
+}
+
+function openInc(id) {
+    document.querySelector('[data-p="evidence"]').click();
+    const el = document.getElementById("inc-" + id); if (el) el.scrollIntoView({behavior: "smooth"});
+}
+
+let tlFilter = {src: new Set(), inc: "all"};
+function timeline() {
+    const srcs = [...new Set(D.incidents.flatMap(i => i.timeline.map(t => t.src)).filter(Boolean))];
+    let h = `<div class="card-custom"><div class="filters">
+        <span class="chip ${tlFilter.inc==='all'?'on':''}" data-inc="all">All incidents</span>
+        ${D.incidents.map(i => `<span class="chip ${tlFilter.inc===i.id?'on':''}" data-inc="${i.id}">${i.id} ${i.severity}</span>`).join("")}</div>
+        <div class="filters">${srcs.map(s => `<span class="chip ${tlFilter.src.has(s)?'on':''}" data-src="${s}">${s}</span>`).join("")}</div>
+        <div class="muted mb-2" style="font-size:12px">Each time is shown in UTC with PKT in brackets. Source times differ: VPN/DC/perimeter/IDS = UTC, web/DHCP = offset in line, internal firewall and email = PKT. Internal firewall logs at session close, so start times are derived.</div>`;
+    D.incidents.filter(i => tlFilter.inc === "all" || i.id === tlFilter.inc).forEach(i => {
+        h += `<div class="sec-title">${i.id} - ${esc(i.title)} <span class="prio ${SEV_CLASS[i.severity]}">${i.severity}</span></div>`;
+        i.timeline.filter(t => !tlFilter.src.size || tlFilter.src.has(t.src)).forEach(t => {
+            h += `<div class="ev ${t.label}"><span class="t">${t.utc.slice(11)} <small>(${t.pkt.slice(0,8)} PKT)</small></span> <span class="src">${t.src||""}</span>
+                  <span class="lbl ${t.label}">${t.label.replace("_"," ")}</span> ${cites(t.text)} ${citeList(t.cites)}</div>`;
+        });
+    });
+    h += `</div>`;
+    $("#p-timeline").innerHTML = h;
+    $("#p-timeline").querySelectorAll("[data-inc]").forEach(c => c.onclick = () => { tlFilter.inc = c.dataset.inc; timeline(); });
+    $("#p-timeline").querySelectorAll("[data-src]").forEach(c => c.onclick = () => { tlFilter.src.has(c.dataset.src) ? tlFilter.src.delete(c.dataset.src) : tlFilter.src.add(c.dataset.src); timeline(); });
+}
+
+function path() {
+    const g = D.graph; if (!g) { $("#p-path").innerHTML = `<div class="card-custom muted">No attack chain found.</div>`; return; }
+    const pos = {mail:[70,60], click:[290,60], ip:[510,60], vpn:[510,170], dc:[760,90], fs:[760,200], db:[760,310], pw:[510,290], lock:[290,290]};
+    const col = {attacker:"#7f1d1d", victim:"#1e3a8a", asset:"#334155", loss:"#b91c1c"};
+    let svg = `<svg viewBox="0 0 900 380" width="100%" style="background:#0b1220;border-radius:12px"><defs><marker id="ar" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#94a3b8"/></marker></defs>`;
+    g.edges.forEach(([a,b]) => { const A = pos[a], B = pos[b];
+        svg += `<line x1="${A[0]+ (B[0]>A[0]?70:(B[0]<A[0]?-70:0))}" y1="${A[1]+(B[1]>A[1]?24:(B[1]<A[1]?-24:0))}" x2="${B[0]-(B[0]>A[0]?70:(B[0]<A[0]?-70:0))}" y2="${B[1]-(B[1]>A[1]?24:(B[1]<A[1]?-24:0))}" stroke="#94a3b8" stroke-width="2" marker-end="url(#ar)"/>`; });
+    g.nodes.forEach(n => { const p = pos[n.id];
+        svg += `<g class="nd" data-ref="${esc((n.cites[0]||'').slice(1,-1))}" style="cursor:pointer"><rect x="${p[0]-70}" y="${p[1]-26}" width="140" height="52" rx="10" fill="${col[n.kind]}" stroke="#e2e8f0" stroke-opacity=".25"/>
+            <text x="${p[0]}" y="${p[1]-4}" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">${esc(n.label.length>24?n.label.slice(0,23)+'…':n.label)}</text>
+            <text x="${p[0]}" y="${p[1]+12}" text-anchor="middle" fill="#cbd5e1" font-size="10">${esc(n.sub.length>28?n.sub.slice(0,27)+'…':n.sub)}</text></g>`; });
+    svg += `</svg>`;
+    $("#p-path").innerHTML = `<div class="card-custom"><div class="section-title">${g.incident}: how the attacker got from one phishing email to 2.4 GB leaving SRV-FS01</div>${svg}
+        <div class="muted mt-2" style="font-size:12px">Red = attacker action, blue = victim, grey = asset reached. Click a box to open its source line. Links between boxes that need a guess (for example "she typed her password") are marked Suspected in the Evidence tab.</div></div>`;
+    $("#p-path").querySelectorAll(".nd").forEach(n => n.onclick = () => n.dataset.ref && showCite(n.dataset.ref));
+}
+
+function evidence() {
+    let h = "";
+    D.incidents.forEach(i => {
+        h += `<div class="card-custom mb-3" id="inc-${i.id}"><div class="d-flex justify-content-between flex-wrap"><div><span class="prio ${SEV_CLASS[i.severity]}">${i.severity}</span> <b style="color:#fff;font-size:18px">${i.id} - ${esc(i.title)}</b></div>
+            <a class="btn-pilot btn-ghost" href="/pack/report?incident=${i.id}" target="_blank">Report for ${i.id}</a></div>
+            <div class="sec-title">Severity with steps (rule 4.1 / 4.2)</div>`;
+        i.parts.forEach(p => { h += `<div class="mb-2"><span class="prio ${SEV_CLASS[p.severity]}">${p.severity}</span> <b>${esc(p.name)}</b>${p.steps.map((s,n) => `<div class="step">${n+1}. ${cites(s)}</div>`).join("")}</div>`; });
+        h += `<div class="sec-title">Affected assets and accounts</div><table class="table-dark-custom"><tr><th>Asset</th><th>Criticality</th><th>Reached</th><th>Evidence</th></tr>
+            ${i.assets.map(a => `<tr><td>${esc(a.hostname)} (${a.tag})</td><td>${a.criticality}</td><td>${a.reached ? "yes" : "no session"}</td><td>${cites(a.why)}</td></tr>`).join("")}</table>`;
+        if (i.accounts.length) h += `<table class="table-dark-custom mt-2"><tr><th>Account</th><th>Status</th></tr>${i.accounts.map(a => `<tr><td>${a.username} (${esc(a.name)}, ${esc(a.role)})</td><td>${esc(a.status)} ${cites(a.cite)}</td></tr>`).join("")}</table>`;
+        const block = (title, lbl, items) => items.length ? `<div class="sec-title">${title}</div>` + items.map(x => `<div class="ev ${lbl}"><span class="lbl ${lbl}">${lbl.replace("_"," ")}</span>${cites(x.text)} ${citeList(x.cites)}${x.guess ? `<div class="muted" style="font-size:12px">Guess needed: ${esc(x.guess)}</div>` : ""}</div>`).join("") : "";
+        h += block("Confirmed", "confirmed", i.confirmed) + block("Suspected", "suspected", i.suspected) + block("Not enough evidence in the logs", "not_enough", i.not_enough);
+        h += `<div class="sec-title">Missing log sources</div>` + i.missing.map(m => `<div class="ev not_enough"><b>${esc(m.source)}</b>: ${esc(m.impact)} ${cites(m.cite)}</div>`).join("");
+        h += `</div>`;
+    });
+    $("#p-evidence").innerHTML = h;
+}
+
+function parseLimit(s) { const m = s.match(/(\d+)\s*(minute|hour)/i); if (!m) return null; return +m[1] * (m[2].toLowerCase().startsWith("h") ? 60 : 1); }
+let t0 = new Date();
+function act() {
+    const pad = n => String(n).padStart(2, "0");
+    const local = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    let h = `<div class="card-custom mb-3"><div class="section-title">Escalation clock</div><div class="muted mb-2">The time limit starts when the SOC first sees the incident (note in file 04). Set that moment:</div>
+        <input type="datetime-local" id="t0" value="${local(t0)}" style="max-width:260px;display:inline-block"> <button class="btn-pilot btn-blue" onclick="t0=new Date($('#t0').value);act()">Start clock</button></div>`;
+    D.incidents.forEach(i => {
+        h += `<div class="card-custom mb-3"><div class="mb-2"><span class="prio ${SEV_CLASS[i.severity]}">${i.severity}</span> <b style="color:#fff">${i.id} - ${esc(i.title)}</b></div>
+            <div class="sec-title">Recommended actions (runbook ID and step)</div>`;
+        i.actions.forEach(a => { h += `<div class="ev"><b>${esc(a.cite.split(" [")[0])}</b>: ${esc(a.text)} ${a.note ? `<div style="color:#fcd34d;font-size:12px">→ ${cites(a.note)}</div>` : ""} ${cites("[" + a.cite.split("[")[1])}</div>`; });
+        h += `<div class="sec-title">People to inform</div><table class="table-dark-custom"><tr><th>Who</th><th>Limit</th><th>Deadline</th><th>How</th><th>Source</th></tr>`;
+        const seen = new Set();
+        i.people.forEach(p => { const k = p.severity + p.who; if (seen.has(k)) return; seen.add(k);
+            const mins = parseLimit(p.limit); const due = mins ? new Date(t0.getTime() + mins * 60000) : null;
+            h += `<tr><td>${esc(p.who)}${p.severity !== i.severity ? ` <span class="muted">(${p.severity}, for ${esc(p["for"])})</span>` : ""}</td><td>${esc(p.limit)}</td>
+                <td>${due ? `<span class="clock" data-due="${due.getTime()}"></span>` : "next business day"}</td><td>${esc(p.how)}</td><td>${cites(p.cite)}</td></tr>`; });
+        h += `</table></div>`;
+    });
+    $("#p-act").innerHTML = h; tick();
+}
+function tick() {
+    document.querySelectorAll(".clock").forEach(c => {
+        const left = +c.dataset.due - Date.now(), m = Math.floor(Math.abs(left) / 60000), s = Math.floor(Math.abs(left) % 60000 / 1000);
+        c.textContent = (left < 0 ? "OVERDUE " : "") + m + "m " + String(s).padStart(2, "0") + "s";
+        c.className = "clock " + (left < 0 ? "late" : left < 300000 ? "soon" : "");
+    });
+}
+setInterval(tick, 1000);
+
+function coverage() {
+    const pct = m => (m / 1440 * 100) + "%";
+    const marks = [];
+    D.incidents.forEach(i => i.timeline.forEach(t => marks.push({m: t.min, s: i.severity})));
+    D.closed.forEach(c => c.timeline.forEach(t => marks.push({m: t.min, s: "closed"})));
+    let h = `<div class="card-custom"><div class="section-title">Which log covers which part of 2026-11-04 (UTC)</div>
+        <div class="muted mb-2" style="font-size:12px">Green = covered, hatched red = gap. Coloured ticks are incident events (red P1, orange P2, grey P4, green = approved). Read file 20 before comparing times.</div>
+        <div class="axis"><span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>24:00 UTC</span></div>`;
+    D.coverage.forEach(c => {
+        h += `<div style="font-size:13px"><b style="color:#fff">${esc(c.source)}</b> <span class="muted">${esc(c.tz)} - ${esc(c.text)}</span></div><div class="strip">
+            ${c.intervals.map(i => `<div class="cov" style="left:${pct(i[0])};width:${pct(i[1]-i[0])}"></div>`).join("")}
+            ${c.gap ? `<div class="gap" style="left:${pct(c.gap[0])};width:${pct(c.gap[1]-c.gap[0])}" title="logging gap"></div>` : ""}</div>${c.notes ? `<div class="muted" style="font-size:12px;margin:-8px 0 12px">${esc(c.notes)}</div>` : ""}`;
+    });
+    h += `<div style="font-size:13px"><b style="color:#fff">Incident events</b></div><div class="strip" style="background:#0f172a">${marks.map(m => `<div class="mk" style="left:${pct(m.m)};background:${m.s==='closed'?'#22c55e':SEV_COLOR[m.s]}"></div>`).join("")}</div>
+        <div class="sec-title">Not collected at all</div>` + (D.incidents[0].missing.map(m => `<div class="ev not_enough"><b>${esc(m.source)}</b>: ${esc(m.impact)} ${cites(m.cite)}</div>`).join("")) + `</div>`;
+    $("#p-coverage").innerHTML = h;
+}
+
+function checks() {
+    $("#p-checks").innerHTML = `<div class="card-custom"><div class="section-title">Cross-source consistency checks (proof the time zone handling is right)</div>
+        <div class="muted mb-2" style="font-size:12px">Every IDS alert is matched to the raw log line that caused it after converting to UTC. The "read as UTC" note shows how far off a naive reading would be.</div>` +
+        D.checks.map(c => `<div class="ev ${c.ok ? "confirmed" : "suspected"}"><b class="${c.ok ? "ok" : "bad"}">${c.ok ? "✔" : "✘"} ${esc(c.name)}</b><br>${esc(c.detail)} ${citeList(c.cites)}</div>`).join("") + `</div>`;
+}
+
+const QUICK = ["Give me the full incident report", "Was the scan from SCAN01 approved?", "Which files were stolen from SRV-FS01?", "Who must be informed and by when?",
+    "What is the severity of the SQL injection?", "Why was braza's remote desktop to the domain controller closed?", "Is there a gap in the internal firewall log?",
+    "What did amalik's account do after the VPN login?", "Which log sources are missing?"];
+function ask(q) {
+    $("#askInput").value = q; $("#askOut").innerHTML = `<div class="answer muted">Thinking...</div>`;
+    fetch("/api/pack/ask", {method: "POST", headers: {"Content-Type": "application/json", "X-CSRF-Token": "{{ csrf_token() }}"}, body: JSON.stringify({question: q})})
+        .then(r => r.json()).then(d => {
+            const c = d.citations;
+            $("#askOut").innerHTML = `<div class="answer">${d.answer_html.replace(/\[(\d\d_[A-Za-z0-9_]+\.md)(?::(\d+)|#([^\]]+))\]/g, (m, f, l, r) => `<span class="cite" data-ref="${f}${l ? ":" + l : "#" + r}">${f.slice(0,2)}${l ? ":" + l : "#" + r}</span>`)}
+            <hr style="border-color:#1f2937"><span class="${c.invalid.length ? "bad" : "ok"}" style="font-size:12px">${c.valid}/${c.total} citations verified against the files${c.invalid.length ? " - unverified: " + esc(c.invalid.join(", ")) : ""}</span> <span class="muted" style="font-size:12px"> · ${esc(d.engine)}</span></div>`;
+        }).catch(() => { $("#askOut").innerHTML = `<div class="answer bad">Request failed.</div>`; });
+}
+$("#askBox").onsubmit = e => { e.preventDefault(); if ($("#askInput").value.trim()) ask($("#askInput").value.trim()); };
+$("#askQuick").innerHTML = QUICK.map(q => `<span class="chip">${esc(q)}</span>`).join("");
+document.querySelectorAll("#askQuick .chip").forEach(c => c.onclick = () => ask(c.textContent));
+
+{% if pack_ready %}
+fetch("/api/pack/analysis").then(r => r.json()).then(d => {
+    D = d;
+    const c = d.citations;
+    $("#citeBadge").textContent = `✔ ${c.valid}/${c.total} citations verified`;
+    if (c.invalid.length) $("#citeBadge").style.color = "#fca5a5";
+    overview(); timeline(); path(); evidence(); act(); coverage(); checks();
+    const h = location.hash.slice(1); if (h) { const t = document.querySelector(`[data-p="${h}"]`); if (t) t.click(); }
+});
+{% endif %}
+</script>
+</body>
+</html>
