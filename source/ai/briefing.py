@@ -13,6 +13,13 @@ CACHE_SECONDS = 60
 def briefing_facts(since=None):
     since = since or datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
     incidents = db.list_incidents(since=since, limit=300)
+    if not incidents:   # nothing today: brief on the most recent day that has incidents
+        latest = db.list_incidents(limit=1)
+        if latest:
+            last = latest[0]["last_seen"]
+            if hasattr(last, "replace"):
+                since = last.replace(hour=0, minute=0, second=0, microsecond=0)
+                incidents = db.list_incidents(since=since, limit=300)
     by_priority = {"P1": 0, "P2": 0, "P3": 0, "P4": 0}
     for inc in incidents:
         if inc.get("ai_priority") in by_priority:
@@ -44,7 +51,9 @@ def _offline_text(f):
     if f["total"] == 0:
         return "All quiet today. No incidents detected so far."
     p = f["by_priority"]
-    parts = [f"{f['total']} incident(s) today from {f['alerts']} alert(s)"]
+    since = f.get("since")
+    when = "today" if not hasattr(since, "date") or since.date() == datetime.now().date() else f"on {since.strftime('%d %b %Y')}"
+    parts = [f"{f['total']} incident(s) {when} from {f['alerts']} alert(s)"]
     critical = p["P1"] + p["P2"]
     parts.append(f"{critical} need attention (P1: {p['P1']}, P2: {p['P2']})")
     text = ", ".join(parts) + "."

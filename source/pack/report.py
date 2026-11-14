@@ -22,7 +22,32 @@ def _incidents(analysis, incident_id):
     return analysis.incidents
 
 
+def build_closed_markdown(analysis, closed_id):
+    p = analysis.p
+    c = next((x for x in analysis.closed if x["id"] == closed_id), None)
+    if not c:
+        return None
+    out = [f"# Closed as harmless - {c['title']}", "",
+           f"*Times are UTC with PKT in brackets (rule 1.1 {cite_row(p.file('01'), '1.1')}).*", "",
+           "## Summary", "",
+           f"**No severity, not escalated.** Alert {c['alert']} is approved activity under **{c['change_id']}** ({c['status']}). {c['rule']}", "",
+           "## Why it was closed (rule 3.1: same system, same person or tool, window contains the activity)", ""]
+    out += [f"- {x}" for x in c["reasons"]]
+    out += ["", f"- {c['detail']}", ""]
+    if c.get("near_miss"):
+        out += ["## Changes that do not apply", ""] + [f"- {n}" for n in c["near_miss"]] + [""]
+    out += ["## Timeline (UTC, with file and line)", "", "| Time UTC (PKT) | Event | Source |", "|---|---|---|"]
+    for t in sorted(c["timeline"], key=lambda x: x["ts"]):
+        out.append(f"| {t['utc']} ({t['pkt']}) | {t['text']} | {_cites(t['cites'])} |")
+    out += ["", "## Recommended actions (runbook ID and step)", ""] + [f"- {x}" for x in (c.get("runbook") or ["No action: approved change."])]
+    total, valid, bad = p.check_text("\n".join(out))
+    out += ["", f"*Citation check: {valid}/{total} citations verified against the 20 files.*"]
+    return "\n".join(out)
+
+
 def build_markdown(analysis, incident_id=None):
+    if incident_id and incident_id.startswith("CL-"):
+        return build_closed_markdown(analysis, incident_id)
     p = analysis.p
     incs = _incidents(analysis, incident_id)
     closed = analysis.closed if not incident_id else []

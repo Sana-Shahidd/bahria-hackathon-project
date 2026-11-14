@@ -81,8 +81,9 @@
             </div>
             <div class="toolbar">
                 <span class="badge-ok" id="citeBadge">Checking citations</span>
-                <a class="btn-pilot btn-blue" href="/pack/report" target="_blank">Full report</a>
-                <a class="btn-pilot btn-ghost" href="/pack/report.md">Download .md</a>
+                <a class="btn-pilot btn-blue" href="/pack/report" target="_blank">Open report / print to PDF</a>
+                <a class="btn-pilot btn-ghost" href="/pack/report.html" download>Download report (.html)</a>
+                <a class="btn-pilot btn-ghost" href="/pack/report.md" download>Download (.md)</a>
             </div>
         </header>
         {% if not pack_ready %}<div class="flash error">Data pack folder not found. Put the 20 files in <code>problem_c_data/</code> or set <code>PACK_DIR</code>.</div>{% endif %}

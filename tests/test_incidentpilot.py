@@ -19,6 +19,7 @@ os.environ.update({
     "LLM_PROVIDER": "offline",
     "AUTO_TRIAGE": "false",
     "NOTIFY_WEBHOOK_URL": "",
+    "ORBIT_SEED": "false",
 })
 sys.path.insert(0, os.path.join(ROOT, "source"))
 

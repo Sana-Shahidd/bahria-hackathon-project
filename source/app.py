@@ -28,6 +28,7 @@ from sniffer import record_brute_force
 from ai.tuning import get_threshold_suggestions, apply_suggestion
 import log_ingest
 from pack import service as pack_service
+from pack import seed as pack_seed
 from init_db import ensure_schema
 import db
 from db import (
@@ -56,6 +57,11 @@ app.config["MAX_CONTENT_LENGTH"] = 20 * 1024 * 1024   # log uploads up to 20 MB
 
 try:
     ensure_schema()   # upgrade databases created by older versions
+    try:
+        if os.environ.get("ORBIT_SEED", "true").lower() != "false" and pack_service.available():
+            print(f"[ORBIT] loaded {pack_seed.seed()} Orbit incident(s) into the dashboard")
+    except Exception as error:   # never block start-up
+        print("[ORBIT] seed skipped:", error)
 except Exception as _error:
     print("[SCHEMA] check skipped:", _error)
 
@@ -621,6 +627,8 @@ def reopen_incident(incident_id):
 def retriage_incident(incident_id):
     if not login_required():
         return redirect("/login")
+    if pack_seed.orbit_ref(db.get_incident(incident_id)):
+        return _decision_response(False, "This incident comes from the Orbit data pack and is analysed by the data-pack engine; there is nothing to re-run.", incident_id)
     triage_incident(incident_id)
     return _decision_response(True, "Pilot re-triaged this incident.", incident_id)
 
@@ -638,7 +646,8 @@ def triage_pending():
 def incident_report(incident_id):
     if not login_required():
         return redirect("/login")
-    text = build_report_markdown(incident_id)
+    ref = pack_seed.orbit_ref(db.get_incident(incident_id))
+    text = pack_service.report_markdown(ref) if ref else build_report_markdown(incident_id)
     if text is None:
         abort(404)
     return render_template("report.html", report_html=safe_markdown(text), incident_id=incident_id)
@@ -648,7 +657,8 @@ def incident_report(incident_id):
 def incident_report_md(incident_id):
     if not login_required():
         return redirect("/login")
-    text = build_report_markdown(incident_id)
+    ref = pack_seed.orbit_ref(db.get_incident(incident_id))
+    text = pack_service.report_markdown(ref) if ref else build_report_markdown(incident_id)
     if text is None:
         abort(404)
     return Response(text, mimetype="text/markdown", headers={
@@ -732,6 +742,25 @@ def pack_report():
         return redirect("/login")
     inc = request.args.get("incident") or None
     return render_template("pack_report.html", report_html=safe_markdown(pack_service.report_markdown(inc)), incident=inc)
+
+
+@app.route("/pack/report.html")
+def pack_report_html():
+    """Self-contained HTML file (open in any browser, print or save as PDF)."""
+    if not login_required():
+        return redirect("/login")
+    inc = request.args.get("incident") or None
+    page = render_template("pack_report_file.html", report_html=safe_markdown(pack_service.report_markdown(inc)), incident=inc)
+    return Response(page, mimetype="text/html", headers={
+        "Content-Disposition": f"attachment; filename=orbit-incident-report{'-' + inc if inc else ''}.html"})
+
+
+@app.route("/pack/seed", methods=["POST"])
+def pack_seed_route():
+    if not login_required():
+        return jsonify({"error": "Unauthorized"}), 401
+    created = pack_seed.seed()
+    return jsonify({"created": created, "message": f"Loaded {created} Orbit incident(s) into the dashboard." if created else "Orbit incidents are already in the dashboard."})
 
 
 @app.route("/pack/report.md")
