@@ -26,13 +26,14 @@
         details summary { color: #a5b4fc; cursor: pointer; font-size: 13px; }
         @media (max-width: 1100px) { .meta-grid { grid-template-columns: repeat(2, minmax(0,1fr)); } }
     </style>
+    <link href="/static/ui.css" rel="stylesheet">
 </head>
 <body>
     {% set active = 'incidents' %}
     {% include "_sidebar.html" %}
 
     <div class="container-fluid py-4 px-4 main-content">
-        <a href="/incidents" class="muted" style="text-decoration:none;">← Incident queue</a>
+        <a href="/incidents" class="muted" style="text-decoration:none;">Back to incident queue</a>
 
         <div class="head-row mt-2">
             <span class="prio {{ priority_class.get(incident.ai_priority, 'none') }}" style="font-size:18px;">{{ incident.ai_priority or '…' }}</span>
@@ -52,14 +53,14 @@
             <div class="meta"><h6>First seen</h6><p>{{ incident.first_seen|ts }}</p></div>
             <div class="meta"><h6>Last seen</h6><p>{{ incident.last_seen|ts }}</p></div>
             <div class="meta"><h6>Alerts</h6><p>{{ incident.alert_count }}</p></div>
-            <div class="meta"><h6>Firewall</h6><p>{% if ip_whitelisted %}Whitelisted{% elif ip_blocked %}🔴 Blocked{% else %}Not blocked{% endif %}</p></div>
+            <div class="meta"><h6>Firewall</h6><p>{% if ip_whitelisted %}Whitelisted{% elif ip_blocked %}Blocked{% else %}Not blocked{% endif %}</p></div>
         </div>
 
         <div class="row g-4">
             <div class="col-lg-8">
                 <div class="card-custom ai-card mb-4">
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                        <span class="ai-label">✈ Pilot's triage · {{ incident.ai_engine or 'pending' }}{% if incident.triaged_at %} · {{ incident.triaged_at|ts }}{% endif %}</span>
+                        <span class="ai-label">Pilot triage · {{ incident.ai_engine or 'pending' }}{% if incident.triaged_at %} · {{ incident.triaged_at|ts }}{% endif %}</span>
                         <span class="muted" style="font-size:13px;">Confidence <b style="color:#fff;">{{ ((incident.ai_confidence or 0) * 100)|round|int }}%</b></span>
                     </div>
                     <div class="ai-summary">{{ incident.ai_summary or 'Pilot has not triaged this incident yet.' }}</div>
@@ -88,7 +89,7 @@
 
                     {% if feedback %}
                     <div class="feedback-box">
-                        🧠 <b>Learned from analyst feedback.</b>
+                        <b>Learned from analyst feedback.</b>
                         {% for f in feedback %}
                             <div style="margin-top:6px;"><a href="/incidents/{{ f.id }}" style="color:#86efac;">INC-{{ f.id }}</a> ({{ f.source_ip }}, {{ f.attack_types }}) was <b>{{ f.analyst_status }}</b> by {{ f.decided_by or 'an analyst' }}{% if f.analyst_notes %}: “{{ f.analyst_notes }}”{% endif %}</div>
                         {% endfor %}
@@ -126,7 +127,7 @@
 
                     {% if incident.analyst_status == 'new' %}
                         <p style="margin-bottom:14px;">Pilot recommends:
-                            <b>{{ {'block_ip':'🔴 Block this IP','monitor':'🟡 Keep monitoring','no_action':'🟢 No action (likely benign)'}.get(incident.ai_recommended_action, '—') }}</b>
+                            <b>{{ {'block_ip':'Block this IP','monitor':'Keep monitoring','no_action':'No action (likely benign)'}.get(incident.ai_recommended_action, '—') }}</b>
                         </p>
 
                         <form method="POST" action="/incidents/{{ incident.id }}/approve" class="mb-3">
@@ -138,14 +139,14 @@
                                     {% if ip_whitelisted %}disabled{% endif %}> Block {{ incident.source_ip }} on the firewall</label>
                             </div>
                             <input type="hidden" name="block" value="false">
-                            <button class="btn-pilot btn-approve w-100" type="submit">✔ Approve — real attack</button>
+                            <button class="btn-pilot btn-approve w-100" type="submit">Approve: real attack</button>
                         </form>
 
                         <form method="POST" action="/incidents/{{ incident.id }}/dismiss">
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <textarea name="notes" rows="2" placeholder="Why is this a false positive? e.g. authorized scanner"></textarea>
                             <div class="my-2"><label><input type="checkbox" name="whitelist" value="true"> Also whitelist {{ incident.source_ip }}</label></div>
-                            <button class="btn-pilot btn-dismiss w-100" type="submit">✖ Dismiss — false positive</button>
+                            <button class="btn-pilot btn-dismiss w-100" type="submit">Dismiss — false positive</button>
                         </form>
                     {% else %}
                         <p><span class="pill status-{{ incident.analyst_status }}">{{ incident.analyst_status|capitalize }}</span>
@@ -162,13 +163,13 @@
                 <div class="card-custom">
                     <div class="section-title">Tools</div>
                     <div class="d-grid gap-2">
-                        <a class="btn-pilot btn-blue text-center" href="/incidents/{{ incident.id }}/report" target="_blank">📄 Incident report (print / PDF)</a>
-                        <a class="btn-pilot btn-ghost text-center" href="/incidents/{{ incident.id }}/report.md">⬇ Download report (.md)</a>
-                        <button class="btn-pilot btn-ghost" onclick="pilotAsk('Is INC-{{ incident.id }} a false positive?')">✈ Ask Pilot: is this a false positive?</button>
-                        <button class="btn-pilot btn-ghost" onclick="pilotAsk('What should I do next for INC-{{ incident.id }}?')">✈ Ask Pilot: what next?</button>
+                        <a class="btn-pilot btn-blue text-center" href="/incidents/{{ incident.id }}/report" target="_blank">Incident report (print / PDF)</a>
+                        <a class="btn-pilot btn-ghost text-center" href="/incidents/{{ incident.id }}/report.md">Download report (.md)</a>
+                        <button class="btn-pilot btn-ghost" onclick="pilotAsk('Is INC-{{ incident.id }} a false positive?')">Ask Pilot: is this a false positive?</button>
+                        <button class="btn-pilot btn-ghost" onclick="pilotAsk('What should I do next for INC-{{ incident.id }}?')">Ask Pilot: what next?</button>
                         <form method="POST" action="/incidents/{{ incident.id }}/retriage" class="d-grid">
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <button class="btn-pilot btn-ghost" type="submit">↻ Re-run AI triage</button>
+                            <button class="btn-pilot btn-ghost" type="submit">Re-run AI triage</button>
                         </form>
                     </div>
                 </div>

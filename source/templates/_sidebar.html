@@ -1,12 +1,21 @@
-<div class="sidebar">
-    <div class="sidebar-title">✈ IncidentPilot</div>
-
-    <a href="/" class="sidebar-link">Dashboard</a>
-    <a href="/incidents" class="sidebar-link {% if active == 'incidents' %}active{% endif %}">Incidents{% if open_incident_count %} <span class="nav-badge">{{ open_incident_count }}</span>{% endif %}</a>
-    <a href="/pack" class="sidebar-link {% if active == 'pack' %}active{% endif %}">Orbit Triage</a>
-    <a href="/ip-lists" class="sidebar-link">IP Lists</a>
-    <a href="/blocked-ips" class="sidebar-link">Blocked IPs</a>
-    <a href="/logs" class="sidebar-link">Logs</a>
-    <a href="/settings" class="sidebar-link">Settings</a>
-    <a href="/logout" class="sidebar-link logout">Logout</a>
-</div>
+<aside class="sidebar">
+    <a class="brand" href="/">
+        <svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 2.5 4.5 7v8.2c0 7.1 4.9 12.5 11.5 14.3 6.6-1.8 11.5-7.2 11.5-14.3V7L16 2.5Z" fill="#1aa7ec"/><path d="M16 2.5 4.5 7v8.2c0 7.1 4.9 12.5 11.5 14.3V2.5Z" fill="#0e8bc9"/><rect x="11.5" y="14" width="9" height="7" rx="1.6" fill="#0c1016"/><path d="M13.3 14v-2.1a2.7 2.7 0 0 1 5.4 0V14" fill="none" stroke="#0c1016" stroke-width="1.8"/></svg>
+        <span><b>IncidentPilot</b><small>Security triage</small></span>
+    </a>
+    <nav class="side-nav">
+        <div class="side-label">Monitor</div>
+        <a href="/" class="sidebar-link {% if active == 'dashboard' %}active{% endif %}"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>Dashboard</a>
+        <a href="/incidents" class="sidebar-link {% if active == 'incidents' %}active{% endif %}"><svg viewBox="0 0 24 24"><path d="M12 3 2.5 20h19L12 3Z"/><path d="M12 10v4.5M12 17.2v.1"/></svg>Incidents{% if open_incident_count %}<span class="nav-badge">{{ open_incident_count }}</span>{% endif %}</a>
+        <a href="/pack" class="sidebar-link {% if active == 'pack' %}active{% endif %}"><svg viewBox="0 0 24 24"><path d="M9 3h6l1 3h3a1.5 1.5 0 0 1 1.5 1.5v11A1.5 1.5 0 0 1 19 20H5a1.5 1.5 0 0 1-1.5-1.5v-11A1.5 1.5 0 0 1 5 6h3l1-3Z"/><path d="m9 13 2 2 4-4.5"/></svg>Orbit triage</a>
+        <div class="side-label">Defend</div>
+        <a href="/ip-lists" class="sidebar-link {% if active == 'iplists' %}active{% endif %}"><svg viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12"/><path d="M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg>IP lists</a>
+        <a href="/blocked-ips" class="sidebar-link {% if active == 'blocked' %}active{% endif %}"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m5.6 5.6 12.8 12.8"/></svg>Blocked IPs</a>
+        <div class="side-label">System</div>
+        <a href="/logs" class="sidebar-link {% if active == 'logs' %}active{% endif %}"><svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6V3Z"/><path d="M14 3v5h5M9 13h7M9 17h7"/></svg>Logs</a>
+        <a href="/settings" class="sidebar-link {% if active == 'settings' %}active{% endif %}"><svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg>Settings</a>
+    </nav>
+    <div class="side-foot">
+        <a href="/logout" class="sidebar-link logout"><svg viewBox="0 0 24 24"><path d="M9 4H5v16h4M15 8l4 4-4 4M19 12H9"/></svg>Sign out</a>
+    </div>
+</aside>

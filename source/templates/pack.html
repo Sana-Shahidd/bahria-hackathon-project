@@ -6,77 +6,91 @@
     <title>IncidentPilot - Orbit Triage</title>
     {% include "_pilot_styles.html" %}
     <style>
-        .tabs { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
-        .tab { padding: 8px 14px; border-radius: 10px; background: #111827; border: 1px solid #1f2937; color: #cbd5e1; font-weight: 700; font-size: 14px; cursor: pointer; }
-        .tab.active { background: #2563eb; color: #fff; border-color: #2563eb; }
-        .panel { display: none; } .panel.active { display: block; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 16px; }
-        .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 18px; }
-        .kpi { background: #111827; border: 1px solid #1f2937; border-radius: 14px; padding: 14px; }
-        .kpi b { font-size: 26px; display: block; color: #fff; } .kpi span { color: #94a3b8; font-size: 12px; }
-        .inc-card { cursor: pointer; border-left: 5px solid #475569; }
-        .inc-card.p1 { border-left-color: #dc2626; } .inc-card.p2 { border-left-color: #ea580c; } .inc-card.p3 { border-left-color: #ca8a04; }
-        .inc-card h5 { color: #fff; font-size: 16px; margin: 8px 0; }
-        .cite { display: inline-block; background: #1e293b; color: #93c5fd; border: 1px solid #334155; border-radius: 6px; padding: 0 6px; font-size: 11px; margin: 1px 2px; cursor: pointer; font-family: Consolas, monospace; }
-        .cite:hover { background: #2563eb; color: #fff; }
-        .lbl { display: inline-block; font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 999px; margin-right: 6px; text-transform: uppercase; }
-        .lbl.confirmed { background: rgba(34,197,94,.15); color: #86efac; } .lbl.suspected { background: rgba(245,158,11,.18); color: #fcd34d; }
-        .lbl.not_enough { background: rgba(148,163,184,.18); color: #cbd5e1; }
-        .ev { border-left: 3px solid #334155; padding: 8px 12px; margin: 0 0 8px 6px; background: #0f172a; border-radius: 0 10px 10px 0; font-size: 13px; }
-        .ev.confirmed { border-left-color: #22c55e; } .ev.suspected { border-left-color: #f59e0b; } .ev.not_enough { border-left-color: #94a3b8; }
-        .ev .t { color: #93c5fd; font-weight: 700; font-family: Consolas, monospace; } .ev .t small { color: #64748b; }
-        .src { font-size: 11px; color: #94a3b8; background: #1f2937; border-radius: 4px; padding: 1px 6px; margin-left: 4px; }
-        .filters { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
-        .chip { padding: 4px 10px; border-radius: 999px; border: 1px solid #334155; color: #cbd5e1; font-size: 12px; cursor: pointer; background: #0f172a; }
-        .chip.on { background: #2563eb; border-color: #2563eb; color: #fff; }
-        .sec-title { color: #fff; font-weight: 700; margin: 18px 0 8px; }
-        .step { font-size: 13px; color: #cbd5e1; margin-left: 14px; }
-        .strip { position: relative; height: 22px; background: #1f2937; border-radius: 6px; margin: 4px 0 14px; overflow: hidden; }
-        .strip .cov { position: absolute; top: 0; bottom: 0; background: #166534; }
-        .strip .mk { position: absolute; top: 0; bottom: 0; width: 4px; border-radius: 2px; }
-        .strip .gap { position: absolute; top: 0; bottom: 0; background: repeating-linear-gradient(45deg,#7f1d1d,#7f1d1d 4px,#450a0a 4px,#450a0a 8px); }
-        .axis { display: flex; justify-content: space-between; font-size: 11px; color: #64748b; margin-bottom: 14px; }
-        .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: none; align-items: center; justify-content: center; z-index: 3000; }
-        .modal-bg.open { display: flex; } .modal { background: #111827; border: 1px solid #334155; border-radius: 14px; padding: 20px; max-width: 760px; width: 92%; }
-        .modal pre { background: #0b1220; padding: 12px; border-radius: 8px; white-space: pre-wrap; word-break: break-all; color: #e5e7eb; }
+        .tabs { display: flex; gap: 2px; margin: 0 0 22px; border-bottom: 1px solid var(--border); overflow-x: auto; }
+        .tab { padding: 10px 16px; color: var(--muted); font-weight: 600; font-size: 14px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; transition: color .15s; }
+        .tab:hover { color: var(--text); }
+        .tab.active { color: #fff; border-bottom-color: var(--accent); }
+        .panel { display: none; } .panel.active { display: block; animation: fade .18s ease-out; }
+        @keyframes fade { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; }
+        .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; margin-bottom: 26px; }
+        .kpi { padding: 16px 18px !important; }
+        .kpi b { font-size: 28px; font-weight: 700; display: block; color: var(--text); letter-spacing: -.02em; line-height: 1.15; }
+        .kpi span { color: var(--muted); font-size: 12.5px; }
+        .inc-card { cursor: pointer; transition: border-color .15s, background .15s; position: relative; }
+        .inc-card:hover { border-color: var(--border-strong) !important; background: var(--surface-2) !important; }
+        .inc-card::before { content: ""; position: absolute; left: 0; top: 16px; bottom: 16px; width: 3px; border-radius: 0 3px 3px 0; background: var(--p4); }
+        .inc-card.p1::before { background: var(--p1); } .inc-card.p2::before { background: var(--p2); } .inc-card.p3::before { background: var(--p3); }
+        .inc-card h5 { color: var(--text); font-size: 15.5px; font-weight: 650; margin: 10px 0 6px; line-height: 1.35; }
+        .inc-card .sum { color: var(--text-2); font-size: 13px; line-height: 1.55; }
+        .cite { display: inline-block; background: var(--surface-3); color: #8fd3f6; border: 1px solid var(--border); border-radius: 5px; padding: 0 6px; font-size: 11px; margin: 1px 2px; cursor: pointer; font-family: var(--mono); line-height: 18px; vertical-align: 1px; }
+        .cite:hover { background: var(--accent-strong); border-color: var(--accent-strong); color: #fff; }
+        .lbl { display: inline-block; font-size: 11.5px; font-weight: 600; padding: 1px 8px; border-radius: 999px; margin-right: 8px; border: 1px solid transparent; }
+        .lbl.confirmed { background: rgba(52,195,122,.12); color: #6fdba3; border-color: rgba(52,195,122,.3); }
+        .lbl.suspected { background: rgba(226,176,8,.12); color: #f1c93e; border-color: rgba(226,176,8,.3); }
+        .lbl.not_enough { background: var(--surface-3); color: var(--text-2); border-color: var(--border-strong); }
+        .ev { border: 1px solid var(--border); border-left: 3px solid var(--border-strong); padding: 10px 14px; margin: 0 0 8px; background: var(--surface); border-radius: var(--radius-sm); font-size: 13.5px; line-height: 1.55; color: var(--text-2); }
+        .ev.confirmed { border-left-color: var(--ok); } .ev.suspected { border-left-color: var(--warn); } .ev.not_enough { border-left-color: var(--muted); }
+        .ev .t { color: var(--text); font-weight: 600; font-family: var(--mono); font-size: 12.5px; } .ev .t small { color: var(--muted); font-weight: 400; }
+        .src { font-size: 11px; color: var(--muted); background: var(--surface-3); border-radius: 4px; padding: 0 6px; margin: 0 6px; font-family: var(--mono); }
+        .filters { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+        .chip { padding: 4px 12px; border-radius: 999px; border: 1px solid var(--border) !important; color: var(--text-2) !important; font-size: 12.5px; cursor: pointer; background: var(--surface) !important; transition: all .15s; }
+        .chip:hover { border-color: var(--border-strong) !important; color: var(--text) !important; }
+        .chip.on { background: var(--accent-soft) !important; border-color: rgba(26,167,236,.5) !important; color: #9bd9f7 !important; }
+        .sec-title { color: var(--text); font-weight: 650; font-size: 13px; letter-spacing: .04em; text-transform: uppercase; margin: 24px 0 10px; }
+        .step { font-size: 13px; color: var(--text-2); margin: 3px 0 0 4px; line-height: 1.5; }
+        .strip { position: relative; height: 14px; background: var(--surface-3); border-radius: 4px; margin: 6px 0 14px; overflow: hidden; }
+        .strip .cov { position: absolute; top: 0; bottom: 0; background: #2c7a56; }
+        .strip .mk { position: absolute; top: 0; bottom: 0; width: 3px; border-radius: 2px; }
+        .strip .gap { position: absolute; top: 0; bottom: 0; background: repeating-linear-gradient(45deg,#7f2a2a,#7f2a2a 4px,#3b1515 4px,#3b1515 8px); }
+        .axis { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--muted); margin-bottom: 14px; font-family: var(--mono); }
+        .modal-bg { position: fixed; inset: 0; background: rgba(5,8,12,.72); display: none; align-items: center; justify-content: center; z-index: 3000; }
+        .modal-bg.open { display: flex; } .modal { background: var(--surface); border: 1px solid var(--border-strong); border-radius: 14px; padding: 20px; max-width: 760px; width: 92%; }
+        .modal pre { background: var(--bg); padding: 12px 14px; border-radius: 8px; white-space: pre-wrap; word-break: break-all; color: var(--text); font-family: var(--mono); font-size: 12.5px; margin: 14px 0 0; border: 1px solid var(--border); }
         #askBox { display: flex; gap: 8px; } #askBox input { flex: 1; }
-        .answer { background: #0f172a; border: 1px solid #1f2937; border-radius: 12px; padding: 14px; margin-top: 14px; }
-        .answer table { border-collapse: collapse; } .answer th, .answer td { border: 1px solid #334155; padding: 4px 8px; font-size: 13px; }
-        .badge-ok { background: rgba(34,197,94,.15); color: #86efac; border: 1px solid rgba(34,197,94,.4); border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 700; }
-        .clock { font-family: Consolas, monospace; font-weight: 700; }
-        .clock.late { color: #fca5a5; } .clock.soon { color: #fcd34d; }
-        svg text { font-family: Arial, sans-serif; }
+        .answer { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; margin-top: 16px; line-height: 1.6; color: var(--text); }
+        .answer table { border-collapse: collapse; width: 100%; margin: 8px 0; } .answer th, .answer td { border: 1px solid var(--border); padding: 6px 10px; font-size: 13px; }
+        .answer th { background: var(--surface-3); text-align: left; } .answer h1 { font-size: 19px; } .answer h2 { font-size: 16px; margin-top: 18px; } .answer h3 { font-size: 14.5px; }
+        .badge-ok { display: inline-flex; align-items: center; gap: 7px; height: 28px; padding: 0 12px; border-radius: 999px; background: rgba(52,195,122,.1); color: #6fdba3; border: 1px solid rgba(52,195,122,.3); font-size: 12.5px; font-weight: 600; }
+        .badge-ok::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+        .clock { font-family: var(--mono); font-weight: 600; font-size: 13px; }
+        .clock.late { color: #ff8c8c; } .clock.soon { color: #f1c93e; }
+        svg text { font-family: var(--font); }
         .nd { transition: opacity .6s; } .edge { transition: opacity .6s; }
-        .nd.pulse rect { animation: pulse 1.2s ease-in-out infinite; }
-        @keyframes pulse { 0%,100% { stroke: #e2e8f0; stroke-opacity: .3; stroke-width: 1; } 50% { stroke: #fbbf24; stroke-opacity: 1; stroke-width: 4; } }
+        .nd.pulse rect { animation: pulse 1.4s ease-in-out infinite; }
+        @keyframes pulse { 0%,100% { stroke-opacity: .3; stroke-width: 1; } 50% { stroke: #1aa7ec; stroke-opacity: 1; stroke-width: 3; } }
         .edge.flow { animation: flow .8s linear infinite; }
         @keyframes flow { to { stroke-dashoffset: -28; } }
-        .ok { color: #86efac; } .bad { color: #fca5a5; }
-        details summary { cursor: pointer; color: #93c5fd; }
+        .ok { color: #6fdba3; } .bad { color: #ff8c8c; }
+        .page-head h1 { font-size: 24px; font-weight: 700; letter-spacing: -.015em; margin: 0 0 4px; }
+        .eyebrow { color: var(--accent); font-size: 12px; font-weight: 650; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 6px; }
+        .toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
     </style>
+    <link href="/static/ui.css" rel="stylesheet">
 </head>
 <body>
     {% set active = 'pack' %}
     {% include "_sidebar.html" %}
-    <div class="container-fluid py-4 px-4 main-content">
-        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+    <main class="main-content">
+        <header class="page-head">
             <div>
-                <div class="page-title">Orbit Logistics - Incident Triage Board</div>
-                <div class="page-subtitle">Built only from the 20 data-pack files. Every claim carries a file:line or file#row citation (click a citation to see the source). All times UTC, PKT in brackets.</div>
+                <div class="eyebrow">Orbit Logistics - 4 Nov 2026</div>
+                <h1>Incident triage</h1>
+                <div class="page-subtitle">Built from the 20 data-pack files only. Every statement cites its source line or table row; select a citation to read it. Times are UTC with PKT in brackets.</div>
             </div>
-            <div class="d-flex gap-2 align-items-center">
-                <span class="badge-ok" id="citeBadge">checking citations...</span>
+            <div class="toolbar">
+                <span class="badge-ok" id="citeBadge">Checking citations</span>
                 <a class="btn-pilot btn-blue" href="/pack/report" target="_blank">Full report</a>
-                <a class="btn-pilot btn-ghost" href="/pack/report.md">.md</a>
+                <a class="btn-pilot btn-ghost" href="/pack/report.md">Download .md</a>
             </div>
-        </div>
+        </header>
         {% if not pack_ready %}<div class="flash error">Data pack folder not found. Put the 20 files in <code>problem_c_data/</code> or set <code>PACK_DIR</code>.</div>{% endif %}
 
         <div class="tabs" id="tabs">
             <div class="tab active" data-p="overview">Overview</div>
             <div class="tab" data-p="timeline">Timeline</div>
             <div class="tab" data-p="path">Attack path</div>
-            <div class="tab" data-p="evidence">Evidence (Confirmed / Suspected / Gaps)</div>
+            <div class="tab" data-p="evidence">Evidence</div>
             <div class="tab" data-p="act">Actions &amp; people</div>
             <div class="tab" data-p="coverage">Log coverage</div>
             <div class="tab" data-p="checks">Cross-checks</div>
@@ -99,8 +113,7 @@
                 <div id="askOut"></div>
             </div>
         </div>
-    </div>
-
+    </main>
     <div class="modal-bg" id="modalBg"><div class="modal"><div class="d-flex justify-content-between"><b id="mTitle" style="color:#fff"></b><button class="btn-pilot btn-ghost" onclick="closeModal()">Close</button></div><pre id="mBody"></pre></div></div>
     {% include "_pilot_widget.html" %}
 
@@ -108,7 +121,7 @@
 const $ = s => document.querySelector(s);
 const esc = t => String(t ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const SEV_CLASS = {P1:"p1",P2:"p2",P3:"p3",P4:"p4"};
-const SEV_COLOR = {P1:"#dc2626",P2:"#ea580c",P3:"#ca8a04",P4:"#64748b"};
+const SEV_COLOR = {P1:"#ef4444",P2:"#f27a26",P3:"#e2b008",P4:"#6b7a90"};
 let D = null;
 
 function cites(text) {   // escape then turn [file:line] / [file#id] into clickable chips
@@ -145,16 +158,16 @@ function overview() {
     inc.forEach(i => {
         h += `<div class="card-custom inc-card ${SEV_CLASS[i.severity]}" onclick="openInc('${i.id}')">
             <span class="prio ${SEV_CLASS[i.severity]}">${i.severity}</span> <span class="muted">${i.id}</span>
-            <h5>${esc(i.title)}</h5><div class="muted" style="font-size:13px">${cites(i.summary)}</div><div class="mt-2">
+            <h5>${esc(i.title)}</h5><div class="sum">${cites(i.summary)}</div><div class="mt-2">
             ${i.parts.map(p => `<span class="tag">${p.severity} · ${esc(p.name)}</span>`).join("")}</div></div>`;
     });
     h += `</div><div class="sec-title">Closed as harmless (approved activity - not escalated)</div><div class="grid">`;
     D.closed.forEach(c => {
-        h += `<div class="card-custom" style="border-left:5px solid #22c55e"><span class="pill fp">${esc(c.change_id)}</span> <span class="muted">${esc(c.status)}</span>
-            <h5 style="color:#fff;font-size:16px;margin:8px 0">${esc(c.title)}</h5>
-            ${c.reasons.map(r => `<div class="step">✔ ${cites(r)}</div>`).join("")}
+        h += `<div class="card-custom" ><span class="pill fp">${esc(c.change_id)}</span> <span class="muted">${esc(c.status)}</span>
+            <h5 style="color:#e8edf4;font-size:15.5px;font-weight:650;margin:10px 0 6px">${esc(c.title)}</h5>
+            ${c.reasons.map(r => `<div class="step">${cites(r)}</div>`).join("")}
             <div class="step muted mt-1">${cites(c.detail)}</div>
-            ${c.near_miss.map(n => `<div class="step muted">✘ ${esc(n)}</div>`).join("")}</div>`;
+            ${c.near_miss.map(n => `<div class="step muted">${esc(n)}</div>`).join("")}</div>`;
     });
     h += `</div>`;
     if (D.observations.length) h += `<div class="sec-title">Other observations (no incident opened)</div>` + D.observations.map(o => `<div class="ev">${cites(o.text)} ${citeList(o.cites)}</div>`).join("");
@@ -202,11 +215,11 @@ let pathState = {step: -1, timer: null, speed: 1};
 function path() {
     const g = D.graph; if (!g) { $("#p-path").innerHTML = `<div class="card-custom muted">No attack chain found.</div>`; return; }
     const pos = {mail:[70,60], click:[290,60], ip:[510,60], vpn:[510,170], dc:[760,90], fs:[760,200], db:[760,310], pw:[510,290], lock:[290,290]};
-    const col = {attacker:"#7f1d1d", victim:"#1e3a8a", asset:"#334155", loss:"#b91c1c"};
-    let svg = `<svg viewBox="0 0 900 380" width="100%" style="background:#0b1220;border-radius:12px"><defs><marker id="ar" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#f87171"/></marker></defs>`;
+    const col = {attacker:"#4a2029", victim:"#193852", asset:"#223042", loss:"#7a2626"};
+    let svg = `<svg viewBox="0 0 900 380" width="100%" style="background:#0c1016;border:1px solid #263040;border-radius:12px"><defs><marker id="ar" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#e0707a"/></marker></defs>`;
     g.edges.forEach(([a,b], idx) => { const A = pos[a], B = pos[b];
         const dx = B[0] > A[0] ? 70 : (B[0] < A[0] ? -70 : 0), dy = B[1] > A[1] ? 26 : (B[1] < A[1] ? -26 : 0);
-        svg += `<line class="edge" id="e-${a}-${b}" x1="${A[0]+dx}" y1="${A[1]+dy}" x2="${B[0]-dx}" y2="${B[1]-dy}" stroke="#f87171" stroke-width="2.5" marker-end="url(#ar)"/>`; });
+        svg += `<line class="edge" id="e-${a}-${b}" x1="${A[0]+dx}" y1="${A[1]+dy}" x2="${B[0]-dx}" y2="${B[1]-dy}" stroke="#e0707a" stroke-width="2" marker-end="url(#ar)"/>`; });
     g.nodes.forEach(n => { const p = pos[n.id];
         svg += `<g class="nd" id="n-${n.id}" data-ref="${esc((n.cites[0]||'').slice(1,-1))}" style="cursor:pointer"><rect x="${p[0]-70}" y="${p[1]-26}" width="140" height="52" rx="10" fill="${col[n.kind]}" stroke="#e2e8f0" stroke-opacity=".3"/>
             <text x="${p[0]}" y="${p[1]-4}" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">${esc(n.label.length>24?n.label.slice(0,23)+'…':n.label)}</text>
@@ -215,7 +228,7 @@ function path() {
             <text id="gb" x="760" y="238" text-anchor="middle" fill="#fca5a5" font-size="15" font-weight="800"></text></svg>`;
     $("#p-path").innerHTML = `<div class="card-custom"><div class="section-title">${g.incident}: from one phishing email to 2.4 GB leaving SRV-FS01 (animated)</div>
         <div class="d-flex gap-2 align-items-center flex-wrap mb-2">
-          <button class="btn-pilot btn-blue" id="pPlay">▶ Play story</button><button class="btn-pilot btn-ghost" id="pStep">Next step ⏭</button><button class="btn-pilot btn-ghost" id="pReset">↺ Reset</button>
+          <button class="btn-pilot btn-blue" id="pPlay">Play story</button><button class="btn-pilot btn-ghost" id="pStep">Next step</button><button class="btn-pilot btn-ghost" id="pReset">Reset</button>
           <label class="muted" style="font-size:13px">Speed <select id="pSpeed" style="background:#0f172a;color:#e5e7eb;border:1px solid #334155;border-radius:8px;padding:4px"><option value="1.6">Slow</option><option value="1" selected>Normal</option><option value="0.5">Fast</option></select></label>
           <span class="muted" style="font-size:12px" id="pCount"></span></div>
         <div id="pCap" class="answer" style="margin:0 0 10px;min-height:56px;font-size:15px;color:#f1f5f9"></div>${svg}
@@ -234,10 +247,10 @@ function pathReset() {
     document.getElementById("clk").textContent = "--:--:-- UTC"; document.getElementById("gb").textContent = "";
     document.getElementById("pCap").textContent = "Press Play story to watch the attack unfold in the order the logs show it.";
     document.getElementById("pCount").textContent = `0 / ${PATH_STEPS.length}`;
-    document.getElementById("pPlay").textContent = "▶ Play story";
+    document.getElementById("pPlay").textContent = "Play story";
 }
 function pathNext() {
-    if (pathState.step >= PATH_STEPS.length - 1) { pathPause(); document.getElementById("pPlay").textContent = "↻ Replay"; return; }
+    if (pathState.step >= PATH_STEPS.length - 1) { pathPause(); document.getElementById("pPlay").textContent = "Replay"; return; }
     pathState.step++;
     const s = PATH_STEPS[pathState.step];
     document.querySelectorAll("#p-path .nd.pulse").forEach(n => n.classList.remove("pulse"));
@@ -247,13 +260,13 @@ function pathNext() {
     document.getElementById("pCap").innerHTML = `<b style="color:#93c5fd">${s.t} UTC</b> - ${esc(s.cap)}`;
     document.getElementById("pCount").textContent = `${pathState.step + 1} / ${PATH_STEPS.length}`;
     if (s.bytes) { let v = 0; const tgt = 2.41, el = document.getElementById("gb"); const iv = setInterval(() => { v += 0.06; if (v >= tgt) { v = tgt; clearInterval(iv); } el.textContent = v.toFixed(2) + " GB"; }, 40); }
-    if (pathState.step === PATH_STEPS.length - 1) { pathPause(); document.getElementById("pPlay").textContent = "↻ Replay"; }
+    if (pathState.step === PATH_STEPS.length - 1) { pathPause(); document.getElementById("pPlay").textContent = "Replay"; }
 }
-function pathPause() { clearInterval(pathState.timer); pathState.timer = null; const b = document.getElementById("pPlay"); if (b && pathState.step < PATH_STEPS.length - 1) b.textContent = "▶ Play story"; }
+function pathPause() { clearInterval(pathState.timer); pathState.timer = null; const b = document.getElementById("pPlay"); if (b && pathState.step < PATH_STEPS.length - 1) b.textContent = "Play story"; }
 function pathPlayPause() {
     if (pathState.timer) { pathPause(); return; }
     if (pathState.step >= PATH_STEPS.length - 1) pathReset();
-    document.getElementById("pPlay").textContent = "⏸ Pause";
+    document.getElementById("pPlay").textContent = "Pause";
     pathNext();
     pathState.timer = setInterval(pathNext, 3500 * pathState.speed);
 }
@@ -286,7 +299,7 @@ function act() {
     D.incidents.forEach(i => {
         h += `<div class="card-custom mb-3"><div class="mb-2"><span class="prio ${SEV_CLASS[i.severity]}">${i.severity}</span> <b style="color:#fff">${i.id} - ${esc(i.title)}</b></div>
             <div class="sec-title">Recommended actions (runbook ID and step)</div>`;
-        i.actions.forEach(a => { h += `<div class="ev"><b>${esc(a.cite.split(" [")[0])}</b>: ${esc(a.text)} ${a.note ? `<div style="color:#fcd34d;font-size:12px">→ ${cites(a.note)}</div>` : ""} ${cites("[" + a.cite.split("[")[1])}</div>`; });
+        i.actions.forEach(a => { h += `<div class="ev"><b>${esc(a.cite.split(" [")[0])}</b>: ${esc(a.text)} ${a.note ? `<div style="color:#fcd34d;font-size:12px">${cites(a.note)}</div>` : ""} ${cites("[" + a.cite.split("[")[1])}</div>`; });
         h += `<div class="sec-title">People to inform</div><table class="table-dark-custom"><tr><th>Who</th><th>Limit</th><th>Deadline</th><th>How</th><th>Source</th></tr>`;
         const seen = new Set();
         i.people.forEach(p => { const k = p.severity + p.who; if (seen.has(k)) return; seen.add(k);
@@ -327,7 +340,7 @@ function coverage() {
 function checks() {
     $("#p-checks").innerHTML = `<div class="card-custom"><div class="section-title">Cross-source consistency checks (proof the time zone handling is right)</div>
         <div class="muted mb-2" style="font-size:12px">Every IDS alert is matched to the raw log line that caused it after converting to UTC. The "read as UTC" note shows how far off a naive reading would be.</div>` +
-        D.checks.map(c => `<div class="ev ${c.ok ? "confirmed" : "suspected"}"><b class="${c.ok ? "ok" : "bad"}">${c.ok ? "✔" : "✘"} ${esc(c.name)}</b><br>${esc(c.detail)} ${citeList(c.cites)}</div>`).join("") + `</div>`;
+        D.checks.map(c => `<div class="ev ${c.ok ? "confirmed" : "suspected"}"><b class="${c.ok ? "ok" : "bad"}">${esc(c.name)}</b><br>${esc(c.detail)} ${citeList(c.cites)}</div>`).join("") + `</div>`;
 }
 
 const QUICK = ["Give me the full incident report", "Was the scan from SCAN01 approved?", "Which files were stolen from SRV-FS01?", "Who must be informed and by when?",
@@ -350,7 +363,7 @@ document.querySelectorAll("#askQuick .chip").forEach(c => c.onclick = () => ask(
 fetch("/api/pack/analysis").then(r => r.json()).then(d => {
     D = d;
     const c = d.citations;
-    $("#citeBadge").textContent = `✔ ${c.valid}/${c.total} citations verified`;
+    $("#citeBadge").textContent = `${c.valid}/${c.total} citations verified`;
     if (c.invalid.length) $("#citeBadge").style.color = "#fca5a5";
     overview(); timeline(); path(); evidence(); act(); coverage(); checks();
     const h = location.hash.slice(1); if (h) { const t = document.querySelector(`[data-p="${h}"]`); if (t) t.click(); }

@@ -166,22 +166,13 @@
             font-style: italic;
         }
     </style>
+    <link href="/static/ui.css" rel="stylesheet">
 </head>
 
 <body>
 
-    <div class="sidebar">
-        <div class="sidebar-title">✈ IncidentPilot</div>
-
-        <a href="/" class="sidebar-link">Dashboard</a>
-
-        <a href="/incidents" class="sidebar-link">Incidents{% if open_incident_count %} <span class="nav-badge">{{ open_incident_count }}</span>{% endif %}</a>
-        <a href="/ip-lists" class="sidebar-link">IP Lists</a>
-        <a href="/blocked-ips" class="sidebar-link">Blocked IPs</a>
-        <a href="/logs" class="sidebar-link active">Logs</a>
-        <a href="/settings" class="sidebar-link">Settings</a>
-        <a href="/logout" class="sidebar-link logout">Logout</a>
-    </div>
+    {% set active = 'logs' %}
+    {% include "_sidebar.html" %}
 
     <div class="main-content">
 
@@ -193,7 +184,7 @@
         <div class="card-custom mb-4" style="border:1px solid #4338ca; background:linear-gradient(135deg,#1e1b4b,#111827 60%);">
             <div style="display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap;">
                 <div>
-                    <div style="color:#a5b4fc; font-weight:800; font-size:12px; letter-spacing:.6px; text-transform:uppercase;">✈ Bring your own logs</div>
+                    <div style="color:#a5b4fc; font-weight:800; font-size:12px; letter-spacing:.6px; text-transform:uppercase;">Bring your own logs</div>
                     <div style="color:#f1f5f9; font-weight:700; font-size:17px; margin-top:4px;">Upload a web server access log (Nginx / Apache)</div>
                     <div style="color:#94a3b8; font-size:13px; margin-top:4px;">Pilot finds SQL injection, XSS, brute force (and logins that succeed after it), directory scans and floods, then triages them. Try <code>data/sample_access.log</code>.</div>
                 </div>

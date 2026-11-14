@@ -1,121 +1,72 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>IncidentPilot - Login</title>
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Sign in - IncidentPilot</title>
+    <link href="/static/ui.css" rel="stylesheet">
     <style>
-        body {
-            margin: 0;
-            font-family: Arial, sans-serif;
-            background: linear-gradient(135deg, #08142b, #0b1d3a);
-            height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-        }
-
-        .login-box {
-            background: rgba(20, 35, 65, 0.95);
-            padding: 40px;
-            width: 360px;
-            border-radius: 18px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
-            text-align: center;
-        }
-
-        .login-box h2 {
-            margin-bottom: 10px;
-            font-weight: 700;
-        }
-
-        .login-box p {
-            color: #94a3b8;
-            margin-bottom: 25px;
-            font-size: 14px;
-        }
-
-        .error-box {
-    background: rgba(239, 68, 68, 0.15);
-    color: #fca5a5;
-    border: 1px solid rgba(239, 68, 68, 0.35);
-    padding: 10px;
-    border-radius: 10px;
-    margin-bottom: 15px;
-    font-size: 14px;
-}
-
-        input {
-            width: 100%;
-            padding: 12px;
-            margin-bottom: 15px;
-            border: none;
-            border-radius: 10px;
-            outline: none;
-            background: #0f172a;
-            color: white;
-        }
-
-        input::placeholder {
-            color: #64748b;
-        }
-
-        button {
-            width: 100%;
-            padding: 12px;
-            background: #2563eb;
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: 0.3s;
-        }
-
-        button:hover {
-            background: #1d4ed8;
-        }
-
-        .footer-text {
-            margin-top: 20px;
-            color: #64748b;
-            font-size: 12px;
-        }
-
-        input:focus {
-    border: 1px solid #2563eb;
-    box-shadow: 0 0 5px rgba(37, 99, 235, 0.5);
-}
-
-       button:hover{
-        transform: translateY(-2px);
-       }
+        body { margin: 0; min-height: 100vh; display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); }
+        .hero { position: relative; overflow: hidden; background: var(--surface); border-right: 1px solid var(--border); padding: 56px 64px; display: flex; flex-direction: column; justify-content: space-between; }
+        .hero .circuit { position: absolute; inset: 0; opacity: .5; pointer-events: none; }
+        .hero > * { position: relative; }
+        .hero .brand { padding: 0; }
+        .hero h1 { font-size: 40px; line-height: 1.12; font-weight: 750; letter-spacing: -.025em; margin: 0 0 16px; max-width: 520px; }
+        .hero h1 span { color: var(--accent); }
+        .hero p { color: var(--text-2); font-size: 16px; max-width: 480px; margin: 0 0 28px; line-height: 1.6; }
+        .points { display: grid; gap: 14px; max-width: 480px; }
+        .points div { display: flex; gap: 12px; align-items: flex-start; color: var(--text-2); font-size: 14px; line-height: 1.5; }
+        .points svg { flex: none; width: 20px; height: 20px; stroke: var(--accent); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; margin-top: 1px; }
+        .points b { color: var(--text); font-weight: 600; }
+        .hero small { color: var(--muted); }
+        .panel-wrap { display: flex; align-items: center; justify-content: center; padding: 40px 24px; }
+        .login-box { width: 100%; max-width: 380px; }
+        .login-box h2 { font-size: 24px; font-weight: 700; letter-spacing: -.015em; margin: 0 0 6px; }
+        .login-box .lead { color: var(--muted); margin: 0 0 26px; }
+        .field { margin-bottom: 16px; }
+        .field label { display: block; font-weight: 600; margin-bottom: 6px; color: var(--text); }
+        .login-box button { width: 100%; height: 42px; margin-top: 6px; border: 0; border-radius: var(--radius-sm); background: var(--accent-strong); color: #fff; font: inherit; font-weight: 600; cursor: pointer; transition: background .15s; }
+        .login-box button:hover { background: var(--accent); }
+        .error-box { background: rgba(239, 68, 68, .1); color: #ff9a9a; border: 1px solid rgba(239, 68, 68, .35); padding: 10px 12px; border-radius: var(--radius-sm); margin-bottom: 18px; font-size: 13.5px; }
+        .note { margin-top: 22px; color: var(--muted); font-size: 12.5px; }
+        @media (max-width: 900px) { body { grid-template-columns: 1fr; } .hero { display: none; } }
     </style>
 </head>
 <body>
-
-    <div class="login-box">
-        <h2>✈ IncidentPilot</h2>
-        <p>Authorized analysts only • AI Security Incident Triage</p>
-        
-        {% if error %}
-    <div class="error-box">
-        {{ error }}
-    </div>
-{% endif %}
-
-        <form method="POST">
-<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <input type="text" name="username" placeholder="Username" required>
-            <input type="password" name="password" placeholder="Password" required>
-
-            <button type="submit">Login</button>
-        </form>
-
-        <div class="footer-text">
-            Detects attacks. Explains them. Tells you what to do next.
+    <section class="hero">
+        <svg class="circuit" viewBox="0 0 800 900" preserveAspectRatio="xMaxYMax slice" fill="none" stroke="#1f3a52" stroke-width="1.5" aria-hidden="true">
+            <path d="M800 120H620l-40 40v120M800 220H700l-30 30v90h-90M800 640H560l-50 50v110M800 760H650M420 900V760l40-40h120"/>
+            <circle cx="580" cy="280" r="4" fill="#1aa7ec" stroke="none"/><circle cx="510" cy="800" r="4" fill="#1aa7ec" stroke="none"/><circle cx="620" cy="120" r="4" fill="#1aa7ec" stroke="none"/>
+        </svg>
+        <a class="brand" href="/">
+            <svg width="34" height="34" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 2.5 4.5 7v8.2c0 7.1 4.9 12.5 11.5 14.3 6.6-1.8 11.5-7.2 11.5-14.3V7L16 2.5Z" fill="#1aa7ec"/><path d="M16 2.5 4.5 7v8.2c0 7.1 4.9 12.5 11.5 14.3V2.5Z" fill="#0e8bc9"/><rect x="11.5" y="14" width="9" height="7" rx="1.6" fill="#0c1016"/><path d="M13.3 14v-2.1a2.7 2.7 0 0 1 5.4 0V14" fill="none" stroke="#0c1016" stroke-width="1.8"/></svg>
+            <span><b>IncidentPilot</b><small>Security triage</small></span>
+        </a>
+        <div>
+            <h1>From raw logs to a <span>clear decision</span>.</h1>
+            <p>Correlate VPN, firewall, email and directory evidence into incidents, scored against your severity matrix and backed by a citation for every claim.</p>
+            <div class="points">
+                <div><svg viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 4.4 3.2 8 8 9 4.8-1 8-4.6 8-9V6l-8-3Z"/><path d="m9 12 2 2 4-4"/></svg><span><b>Evidence you can verify.</b> Confirmed, suspected and missing evidence are kept apart.</span></div>
+                <div><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span><b>Time zones handled.</b> Every source is normalised to UTC before events are compared.</span></div>
+                <div><svg viewBox="0 0 24 24"><path d="M5 4h14v16H5z"/><path d="M9 9h6M9 13h6M9 17h3"/></svg><span><b>Runbook-driven actions.</b> Recommendations name the runbook and step, and who to inform.</span></div>
+            </div>
         </div>
-    </div>
+        <small>Authorized analysts only</small>
+    </section>
 
+    <section class="panel-wrap">
+        <div class="login-box">
+            <h2>Sign in</h2>
+            <p class="lead">Use your analyst account to continue.</p>
+            {% if error %}<div class="error-box" role="alert">{{ error }}</div>{% endif %}
+            <form method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="field"><label for="u">Username</label><input id="u" type="text" name="username" autocomplete="username" required autofocus></div>
+                <div class="field"><label for="p">Password</label><input id="p" type="password" name="password" autocomplete="current-password" required></div>
+                <button type="submit">Sign in</button>
+            </form>
+            <div class="note">Sessions are protected with CSRF tokens. Contact your administrator for access.</div>
+        </div>
+    </section>
 </body>
 </html>

@@ -14,6 +14,7 @@
         .rec { font-weight: 700; font-size: 13px; }
         .rec.block_ip { color: #fca5a5; } .rec.monitor { color: #fcd34d; } .rec.no_action { color: #86efac; }
     </style>
+    <link href="/static/ui.css" rel="stylesheet">
 </head>
 <body>
     {% set active = 'incidents' %}
@@ -46,7 +47,7 @@
                 </form>
                 <form method="POST" action="/incidents/triage-pending">
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button class="btn-pilot btn-blue" type="submit">✈ Triage pending</button>
+                    <button class="btn-pilot btn-blue" type="submit">Triage pending</button>
                 </form>
             </div>
         </div>
@@ -80,7 +81,7 @@
                             {% if inc.ai_recommended_action %}
                             <span class="rec {{ inc.ai_recommended_action }}">{{ {'block_ip':'Block IP','monitor':'Monitor','no_action':'No action'}[inc.ai_recommended_action] }}</span>
                             {% endif %}
-                            {% if inc.ai_feedback_used %}<div class="muted" style="font-size:12px;margin-top:4px;">🧠 used past feedback</div>{% endif %}
+                            {% if inc.ai_feedback_used %}<div class="muted" style="font-size:12px;margin-top:4px;">used past feedback</div>{% endif %}
                         </td>
                         <td style="white-space:nowrap;">{{ inc.last_seen|ts }}</td>
                         <td><span class="pill status-{{ inc.analyst_status }}">{{ inc.analyst_status|capitalize }}</span></td>

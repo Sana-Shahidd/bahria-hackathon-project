@@ -139,22 +139,13 @@
             margin-top: 6px;
         }
     </style>
+    <link href="/static/ui.css" rel="stylesheet">
 </head>
 
 <body>
 
-    <div class="sidebar">
-        <div class="sidebar-title">✈ IncidentPilot</div>
-
-        <a href="/" class="sidebar-link">Dashboard</a>
-
-        <a href="/incidents" class="sidebar-link">Incidents{% if open_incident_count %} <span class="nav-badge">{{ open_incident_count }}</span>{% endif %}</a>
-        <a href="/ip-lists" class="sidebar-link">IP Lists</a>
-        <a href="/blocked-ips" class="sidebar-link">Blocked IPs</a>
-        <a href="/logs" class="sidebar-link">Logs</a>
-        <a href="/settings" class="sidebar-link active">Settings</a>
-        <a href="/logout" class="sidebar-link logout">Logout</a>
-    </div>
+    {% set active = 'settings' %}
+    {% include "_sidebar.html" %}
 
     <div class="main">
         <div class="title">Rule Settings</div>
@@ -171,7 +162,7 @@
 
         {% if suggestions %}
         <div class="card" style="border:1px solid #4338ca;">
-            <div class="section-title">✈ Pilot's tuning suggestions <span style="color:#94a3b8; font-weight:500; font-size:13px;">(learned from the last 7 days of analyst decisions)</span></div>
+            <div class="section-title">Tuning suggestions <span style="color:#94a3b8; font-weight:500; font-size:13px;">(learned from the last 7 days of analyst decisions)</span></div>
             {% for s in suggestions %}
             <div class="toggle-row" style="align-items:center; gap:12px;">
                 <span>
@@ -183,7 +174,7 @@
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input type="hidden" name="rule" value="{{ s.rule }}">
                     <input type="hidden" name="value" value="{{ s.suggested }}">
-                    <button type="submit" class="btn-save" style="padding:8px 14px; white-space:nowrap;">Apply {{ s.current }} → {{ s.suggested }}</button>
+                    <button type="submit" class="btn-save" style="padding:8px 14px; white-space:nowrap;">Apply: {{ s.current }} to {{ s.suggested }}</button>
                 </form>
                 {% endif %}
             </div>

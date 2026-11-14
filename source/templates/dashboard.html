@@ -299,30 +299,21 @@
             margin-top: 20px;
         }
     </style>
+    <link href="/static/ui.css" rel="stylesheet">
 </head>
 
 <body>
 
     {% set total_blocked = blocked_ips|length %}
 
-    <div class="sidebar">
-        <div class="sidebar-title">✈ IncidentPilot</div>
-
-        <a href="/" class="sidebar-link active">Dashboard</a>
-
-        <a href="/incidents" class="sidebar-link">Incidents{% if open_incident_count %} <span class="nav-badge">{{ open_incident_count }}</span>{% endif %}</a>
-        <a href="/ip-lists" class="sidebar-link">IP Lists</a>
-        <a href="/blocked-ips" class="sidebar-link">Blocked IPs</a>
-        <a href="/logs" class="sidebar-link">Logs</a>
-        <a href="/settings" class="sidebar-link">Settings</a>
-        <a href="/logout" class="sidebar-link logout">Logout</a>
-    </div>
+    {% set active = 'dashboard' %}
+    {% include "_sidebar.html" %}
 
     <div class="container-fluid py-4 px-4 main-content">
 
         <div class="top-status">
             <div class="top-left">
-                <span class="system-active">● SYSTEM ACTIVE</span>
+                <span class="system-active">System active</span>
                 <span class="status-text">Real-time IDS monitoring | Live dashboard update every 5 seconds</span>
             </div>
 
@@ -338,7 +329,7 @@
 
         <div class="briefing-card">
             <div class="briefing-head">
-                <span class="briefing-label">✈ Pilot · Today's briefing <span id="briefing-time" style="color:#64748b; font-weight:500;"></span></span>
+                <span class="briefing-label">Today's briefing <span id="briefing-time" style="color:#64748b; font-weight:500;"></span></span>
                 <div style="display:flex; gap:8px;">
                     <a href="/incidents" class="briefing-btn">Open incident queue</a>
                     <a href="#" id="briefing-top" class="briefing-btn" style="background:#dc2626; display:none;">Start with top incident</a>
@@ -476,15 +467,15 @@
 
                                         <td>
                                             {% if attack[1] == "High Traffic" %}
-                                                🚨 High Traffic
+                                                High Traffic
                                             {% elif attack[1] == "Port Scan" %}
-                                                🔍 Port Scan
+                                                Port Scan
                                             {% elif attack[1] == "SQL Injection" %}
-                                                💉 SQL Injection
+                                                SQL Injection
                                             {% elif attack[1] == "XSS Attack" %}
-                                                🧪 XSS Attack
+                                                XSS Attack
                                             {% elif attack[1] == "Brute Force" %}
-                                                🔐 Brute Force
+                                                Brute Force
                                             {% else %}
                                                 {{ attack[1] }}
                                             {% endif %}
@@ -506,13 +497,13 @@
 
                                         <td>
                                             {% if attack[6] == "blocked" or attack[7] == "blocked" %}
-                                                <span class="status-blocked">🔴 Blocked</span>
+                                                <span class="status-blocked">Blocked</span>
                                             {% elif attack[6] == "pending_approval" %}
-                                                <span class="status-pending">🟣 Awaiting approval</span>
+                                                <span class="status-pending">Awaiting approval</span>
                                             {% elif attack[6] == "dismissed" %}
-                                                <span class="status-dismissed">⚪ Dismissed</span>
+                                                <span class="status-dismissed">Dismissed</span>
                                             {% else %}
-                                                <span class="status-detected">🟡 Detected</span>
+                                                <span class="status-detected">Detected</span>
                                             {% endif %}
                                         </td>
 
@@ -599,11 +590,11 @@
         let timelineChart;
 
         function getAttackName(attackType) {
-            if (attackType === "High Traffic") return "🚨 High Traffic";
-            if (attackType === "Port Scan") return "🔍 Port Scan";
-            if (attackType === "SQL Injection") return "💉 SQL Injection";
-            if (attackType === "XSS Attack") return "🧪 XSS Attack";
-            if (attackType === "Brute Force") return "🔐 Brute Force";
+            if (attackType === "High Traffic") return "High Traffic";
+            if (attackType === "Port Scan") return "Port Scan";
+            if (attackType === "SQL Injection") return "SQL Injection";
+            if (attackType === "XSS Attack") return "XSS Attack";
+            if (attackType === "Brute Force") return "Brute Force";
             return attackType;
         }
 
@@ -615,16 +606,16 @@
 
         function getStatusHtml(status, action) {
             if (status === "blocked" || action === "blocked") {
-                return '<span class="status-blocked">🔴 Blocked</span>';
+                return '<span class="status-blocked">Blocked</span>';
             }
             if (status === "pending_approval") {
-                return '<span class="status-pending">🟣 Awaiting approval</span>';
+                return '<span class="status-pending">Awaiting approval</span>';
             }
             if (status === "dismissed") {
-                return '<span class="status-dismissed">⚪ Dismissed</span>';
+                return '<span class="status-dismissed">Dismissed</span>';
             }
 
-            return '<span class="status-detected">🟡 Detected</span>';
+            return '<span class="status-detected">Detected</span>';
         }
 
         function getActionText(action) {
@@ -670,7 +661,7 @@
                             Number("{{ stats.port_scan_count }}"),
                             Number("{{ stats.high_traffic_count }}")
                         ],
-                        backgroundColor: ["#ef4444", "#a855f7", "#f97316", "#3b82f6", "#f59e0b"],
+                        backgroundColor: ["#ef4444", "#8b7cf6", "#f27a26", "#1aa7ec", "#e2b008"],
                         borderRadius: 8
                     }]
                 },
@@ -696,8 +687,8 @@
                             Number("{{ stats.medium_count }}"),
                             Number("{{ stats.low_count if stats.low_count is defined else 0 }}")
                         ],
-                        backgroundColor: ["#ef4444", "#f59e0b", "#22c55e"],
-                        borderColor: "#111827",
+                        backgroundColor: ["#ef4444", "#e2b008", "#34c37a"],
+                        borderColor: "#131922",
                         borderWidth: 2
                     }]
                 },
@@ -715,8 +706,8 @@
                     datasets: [{
                         label: "Recent Attack Order",
                         data: [],
-                        borderColor: "#38bdf8",
-                        backgroundColor: "rgba(56, 189, 248, 0.15)",
+                        borderColor: "#1aa7ec",
+                        backgroundColor: "rgba(26, 167, 236, 0.14)",
                         tension: 0.35,
                         fill: true
                     }]

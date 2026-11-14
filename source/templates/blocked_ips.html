@@ -147,21 +147,12 @@
             font-weight: bold;
         }
     </style>
+    <link href="/static/ui.css" rel="stylesheet">
 </head>
 <body>
 
-    <div class="sidebar">
-        <div class="sidebar-title">✈ IncidentPilot</div>
-
-        <a href="/" class="sidebar-link">Dashboard</a>
-
-        <a href="/incidents" class="sidebar-link">Incidents{% if open_incident_count %} <span class="nav-badge">{{ open_incident_count }}</span>{% endif %}</a>
-        <a href="/ip-lists" class="sidebar-link">IP Lists</a>
-        <a href="/blocked-ips" class="sidebar-link active">Blocked IPs</a>
-        <a href="/logs" class="sidebar-link">Logs</a>
-        <a href="/settings" class="sidebar-link">Settings</a>
-        <a href="/logout" class="sidebar-link logout">Logout</a>
-    </div>
+    {% set active = 'blocked' %}
+    {% include "_sidebar.html" %}
 
     <div class="main">
 

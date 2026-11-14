@@ -63,11 +63,11 @@
 <div class="pilot-toasts" id="pilotToasts"></div>
 
 <div class="pilot-dock">
-    <button class="pd-main" onclick="pilotToggle('triage')" aria-label="Ask Pilot">✈
+    <button class="pd-main" onclick="pilotToggle('triage')" aria-label="Ask Pilot"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12Z"/><path d="M9 11h6M9 14h4"/></svg>
         {% if open_incident_count %}<span class="pilot-dot"></span>{% endif %}
         <span class="pd-tip">Ask Pilot</span>
     </button>
-    <button class="pd-agents" onclick="pilotToggle('agents')" aria-label="Agents for triage">⠿
+    <button class="pd-agents" onclick="pilotToggle('agents')" aria-label="Agents for triage"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="7" r="3"/><path d="M5.5 20a6.5 6.5 0 0 1 13 0"/></svg>
         <span class="pd-tip">Agents for triage</span>
     </button>
 </div>
@@ -75,13 +75,13 @@
 <div class="pilot-panel" id="pilotPanel">
     <div class="pp-head">
         <div class="pp-title">
-            <div><b>✈ Ask Pilot</b><small>{{ pilot_engine }} · answers from your live IDS data</small></div>
+            <div><b>Ask Pilot</b><small>{{ pilot_engine }} · answers from your live IDS data</small></div>
             <button class="pp-close" onclick="pilotToggle()">×</button>
         </div>
         <div class="pp-agents">
-            <button class="pp-agent active" data-agent="triage" onclick="pilotSetAgent('triage')">🛡 Triage</button>
-            <button class="pp-agent" data-agent="report" onclick="pilotSetAgent('report')">📄 Report</button>
-            <button class="pp-agent" data-agent="briefing" onclick="pilotSetAgent('briefing')">☀ Briefing</button>
+            <button class="pp-agent active" data-agent="triage" onclick="pilotSetAgent('triage')">Triage</button>
+            <button class="pp-agent" data-agent="report" onclick="pilotSetAgent('report')">Report</button>
+            <button class="pp-agent" data-agent="briefing" onclick="pilotSetAgent('briefing')">Briefing</button>
         </div>
     </div>
     <div class="pp-body" id="pilotBody"></div>
@@ -176,7 +176,7 @@
                 body: JSON.stringify(payload),
             });
             const d = await r.json();
-            addBot(`<p>${d.ok ? "✅" : "⚠️"} ${esc(d.message)}</p>`, [{ type: "open", incident_id: id, label: `Open INC-${id}` }]);
+            addBot(`<p>${esc(d.message)}</p>`, [{ type: "open", incident_id: id, label: `Open INC-${id}` }]);
             btn.closest(".pp-actions").querySelectorAll(".a-approve, .a-dismiss").forEach(x => x.remove());
         } catch (e) { addBot("<p>Action failed. Try again from the incident page.</p>"); }
     }
@@ -200,7 +200,7 @@
         const opening = !panel.classList.contains("open") || mode === "agents";
         panel.classList.add("open");
         if (mode === "agents") {
-            addBot("<p><b>Pick an agent:</b> 🛡 <b>Triage</b> explains and prioritises incidents · 📄 <b>Report</b> writes incident reports · ☀ <b>Briefing</b> summarises your day.</p>");
+            addBot("<p><b>Pick an agent:</b> <b>Triage</b> explains and prioritises incidents · <b>Report</b> writes incident reports · <b>Briefing</b> summarises your day.</p>");
         }
         if (opening && !body.children.length) {
             addBot(`<p>Hi, I'm <b>Pilot</b>. I read your live alerts and incidents. Ask me anything, or tap a suggestion below.</p>`);
@@ -253,7 +253,7 @@
                 markSeen(i.id);
                 const t = document.createElement("div");
                 t.className = "pilot-toast";
-                t.innerHTML = `🚨 <b>New P1 · INC-${i.id}</b> from <b>${esc(i.source_ip)}</b><br>${esc(i.summary)}
+                t.innerHTML = `<b>New P1 · INC-${i.id}</b> from <b>${esc(i.source_ip)}</b><br>${esc(i.summary)}
                     <div class="pt-actions"><a href="/incidents/${i.id}">Open</a><button type="button">Dismiss</button></div>`;
                 t.querySelector("button").onclick = () => t.remove();
                 document.getElementById("pilotToasts").appendChild(t);
