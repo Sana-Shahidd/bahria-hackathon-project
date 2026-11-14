@@ -8,25 +8,26 @@
     <style>
         .head-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
         .ai-card { background: linear-gradient(135deg, #1e1b4b 0%, #111827 55%); border: 1px solid #4338ca; }
-        .ai-label { color: #a5b4fc; font-weight: 800; font-size: 12px; letter-spacing: .6px; text-transform: uppercase; }
-        .ai-summary { font-size: 17px; line-height: 1.55; color: #f8fafc; margin: 10px 0 16px; }
+        .ai-label { color: var(--accent-text); font-weight: 800; font-size: 12px; letter-spacing: .6px; text-transform: uppercase; }
+        .ai-summary { font-size: 17px; line-height: 1.55; color: var(--text); margin: 10px 0 16px; }
         .meta-grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 12px; margin-bottom: 18px; }
-        .meta { background: #0f172a; border: 1px solid #1f2937; border-radius: 12px; padding: 12px; }
-        .meta h6 { color: #94a3b8; font-size: 12px; text-transform: uppercase; margin: 0 0 6px; }
-        .meta p { margin: 0; color: #fff; font-weight: 700; }
-        ul.clean { padding-left: 18px; margin: 0; } ul.clean li { margin-bottom: 6px; color: #e2e8f0; }
-        .evidence a { color: #93c5fd; }
+        .meta { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px; }
+        .meta h6 { color: var(--muted); font-size: 12px; text-transform: uppercase; margin: 0 0 6px; }
+        .meta p { margin: 0; color: var(--text); font-weight: 700; }
+        ul.clean { padding-left: 18px; margin: 0; } ul.clean li { margin-bottom: 6px; color: var(--text); }
+        .evidence a { color: var(--accent-text); }
         .feedback-box { background: #052e16; border: 1px solid #166534; color: #bbf7d0; border-radius: 12px; padding: 12px 14px; margin-top: 14px; }
-        .decision-card label { color: #cbd5e1; font-size: 14px; }
+        .decision-card label { color: var(--text-2); font-size: 14px; }
         tr.flash-row { background: #312e81 !important; transition: background 1.5s; }
         .status-pending_approval { color: #c4b5fd; font-weight: 700; }
-        .status-blocked { color: #fca5a5; font-weight: 700; }
-        .status-dismissed { color: #94a3b8; font-weight: 700; }
-        .status-detected { color: #fcd34d; font-weight: 700; }
-        details summary { color: #a5b4fc; cursor: pointer; font-size: 13px; }
+        .status-blocked { color: var(--bad-text); font-weight: 700; }
+        .status-dismissed { color: var(--muted); font-weight: 700; }
+        .status-detected { color: var(--warn-text); font-weight: 700; }
+        details summary { color: var(--accent-text); cursor: pointer; font-size: 13px; }
         @media (max-width: 1100px) { .meta-grid { grid-template-columns: repeat(2, minmax(0,1fr)); } }
     </style>
     <link href="/static/ui.css" rel="stylesheet">
+    <script src="/static/theme.js"></script>
 </head>
 <body>
     {% set active = 'incidents' %}
@@ -61,7 +62,7 @@
                 <div class="card-custom ai-card mb-4">
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                         <span class="ai-label">Pilot triage · {{ incident.ai_engine or 'pending' }}{% if incident.triaged_at %} · {{ incident.triaged_at|ts }}{% endif %}</span>
-                        <span class="muted" style="font-size:13px;">Confidence <b style="color:#fff;">{{ ((incident.ai_confidence or 0) * 100)|round|int }}%</b></span>
+                        <span class="muted" style="font-size:13px;">Confidence <b style="color: var(--text);">{{ ((incident.ai_confidence or 0) * 100)|round|int }}%</b></span>
                     </div>
                     <div class="ai-summary">{{ incident.ai_summary or 'Pilot has not triaged this incident yet.' }}</div>
 
@@ -91,7 +92,7 @@
                     <div class="feedback-box">
                         <b>Learned from analyst feedback.</b>
                         {% for f in feedback %}
-                            <div style="margin-top:6px;"><a href="/incidents/{{ f.id }}" style="color:#86efac;">INC-{{ f.id }}</a> ({{ f.source_ip }}, {{ f.attack_types }}) was <b>{{ f.analyst_status }}</b> by {{ f.decided_by or 'an analyst' }}{% if f.analyst_notes %}: “{{ f.analyst_notes }}”{% endif %}</div>
+                            <div style="margin-top:6px;"><a href="/incidents/{{ f.id }}" style="color: var(--ok-text);">INC-{{ f.id }}</a> ({{ f.source_ip }}, {{ f.attack_types }}) was <b>{{ f.analyst_status }}</b> by {{ f.decided_by or 'an analyst' }}{% if f.analyst_notes %}: “{{ f.analyst_notes }}”{% endif %}</div>
                         {% endfor %}
                     </div>
                     {% endif %}
@@ -112,7 +113,7 @@
                                 <td>{{ a.severity }}</td>
                                 <td>{{ a.target_ip or '-' }}:{{ a.target_port or '-' }}</td>
                                 <td><span class="status-{{ a.status }}">{{ a.status|replace('_', ' ') }}</span></td>
-                                <td style="color:#cbd5e1;max-width:420px;word-break:break-word;">{{ a.description }}</td>
+                                <td style="color: var(--text-2);max-width:420px;word-break:break-word;">{{ a.description }}</td>
                             </tr>
                         {% endfor %}
                         </tbody>
@@ -177,9 +178,9 @@
                 <div class="card-custom mt-4">
                     <div class="section-title">Similar incidents</div>
                     {% for s in similar %}
-                        <a href="/incidents/{{ s.id }}" style="display:block; text-decoration:none; color:#e5e7eb; padding:10px 0; border-bottom:1px solid #1f2937;">
+                        <a href="/incidents/{{ s.id }}" style="display:block; text-decoration:none; color: var(--text); padding:10px 0; border-bottom:1px solid var(--border);">
                             <span class="prio {{ priority_class.get(s.ai_priority, 'none') }}" style="font-size:11px; min-width:30px; padding:3px 6px;">{{ s.ai_priority or '…' }}</span>
-                            <b>INC-{{ s.id }}</b> · <code style="color:#93c5fd">{{ s.source_ip }}</code>
+                            <b>INC-{{ s.id }}</b> · <code style="color: var(--accent-text)">{{ s.source_ip }}</code>
                             <span class="pill status-{{ s.analyst_status }}" style="float:right;">{{ s.analyst_status }}</span>
                             <div class="muted" style="font-size:12px; margin-top:4px;">{{ s.similar_reason }} · {{ s.attack_types|replace(',', ', ') }} · {{ s.last_seen|ts }}</div>
                         </a>

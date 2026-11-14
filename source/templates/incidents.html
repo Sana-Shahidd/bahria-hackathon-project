@@ -7,14 +7,15 @@
     {% include "_pilot_styles.html" %}
     <style>
         .tabs { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
-        .tab { padding: 8px 14px; border-radius: 10px; background: #111827; border: 1px solid #1f2937; color: #cbd5e1; text-decoration: none; font-weight: 700; font-size: 14px; }
+        .tab { padding: 8px 14px; border-radius: 10px; background: var(--surface); border: 1px solid var(--border); color: var(--text-2); text-decoration: none; font-weight: 700; font-size: 14px; }
         .tab.active { background: #2563eb; color: #fff; border-color: #2563eb; }
         .tab .n { opacity: .75; margin-left: 4px; }
-        .summary-cell { max-width: 420px; color: #cbd5e1; }
+        .summary-cell { max-width: 420px; color: var(--text-2); }
         .rec { font-weight: 700; font-size: 13px; }
-        .rec.block_ip { color: #fca5a5; } .rec.monitor { color: #fcd34d; } .rec.no_action { color: #86efac; }
+        .rec.block_ip { color: var(--bad-text); } .rec.monitor { color: var(--warn-text); } .rec.no_action { color: var(--ok-text); }
     </style>
     <link href="/static/ui.css" rel="stylesheet">
+    <script src="/static/theme.js"></script>
 </head>
 <body>
     {% set active = 'incidents' %}
@@ -40,7 +41,7 @@
             <div class="d-flex gap-2 align-items-center">
                 <form method="GET" class="d-flex gap-2">
                     <input type="hidden" name="status" value="{{ status }}">
-                    <select name="priority" onchange="this.form.submit()" style="background:#0f172a;color:#e5e7eb;border:1px solid #334155;border-radius:10px;padding:8px;">
+                    <select name="priority" onchange="this.form.submit()" style="background: var(--surface);color: var(--text);border:1px solid var(--border-strong);border-radius:10px;padding:8px;">
                         <option value="">All priorities</option>
                         {% for p in ["P1","P2","P3","P4"] %}<option value="{{ p }}" {% if priority == p %}selected{% endif %}>{{ p }}</option>{% endfor %}
                     </select>
@@ -66,7 +67,7 @@
                     <tr class="row-link" onclick="location.href='/incidents/{{ inc.id }}'">
                         <td>{% if inc.ai_priority %}<span class="prio {{ priority_class[inc.ai_priority] }}">{{ inc.ai_priority }}</span>{% else %}<span class="prio none">…</span>{% endif %}</td>
                         <td><b>INC-{{ inc.id }}</b></td>
-                        <td><code style="color:#93c5fd">{{ inc.source_ip }}</code></td>
+                        <td><code style="color: var(--accent-text)">{{ inc.source_ip }}</code></td>
                         <td>{% for t in inc.attack_type_list %}<span class="tag">{{ t }}</span>{% endfor %}</td>
                         <td>{{ inc.alert_count }}</td>
                         <td>

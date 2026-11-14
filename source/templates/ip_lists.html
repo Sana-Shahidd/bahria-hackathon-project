@@ -6,8 +6,8 @@
     <style>
         body {
             margin: 0;
-            background: #0b1220;
-            color: #e5e7eb;
+            background: var(--bg);
+            color: var(--text);
             font-family: Arial, sans-serif;
         }
 
@@ -17,13 +17,13 @@
             left: 0;
             width: 230px;
             height: 100vh;
-            background: #111827;
-            border-right: 1px solid #1f2937;
+            background: var(--surface);
+            border-right: 1px solid var(--border);
             padding: 25px 18px;
         }
 
         .sidebar-title {
-            color: white;
+            color: var(--text);
             font-weight: bold;
             font-size: 22px;
             margin-bottom: 30px;
@@ -31,7 +31,7 @@
 
         .sidebar-link {
             display: block;
-            color: #cbd5e1;
+            color: var(--text-2);
             text-decoration: none;
             padding: 12px;
             border-radius: 10px;
@@ -48,7 +48,7 @@
         .sidebar-link.logout {
             margin-top: 25px;
             background: rgba(220, 53, 69, 0.15);
-            color: #fca5a5;
+            color: var(--bad-text);
         }
 
         .main {
@@ -63,7 +63,7 @@
         }
 
         .subtitle {
-            color: #94a3b8;
+            color: var(--muted);
             margin-bottom: 25px;
         }
 
@@ -76,14 +76,14 @@
 
         .summary-card,
         .card {
-            background: #111827;
-            border: 1px solid #1f2937;
+            background: var(--surface);
+            border: 1px solid var(--border);
             border-radius: 16px;
             padding: 20px;
         }
 
         .summary-title {
-            color: #94a3b8;
+            color: var(--muted);
             font-size: 13px;
             text-transform: uppercase;
             margin-bottom: 8px;
@@ -92,7 +92,7 @@
         .summary-value {
             font-size: 28px;
             font-weight: bold;
-            color: white;
+            color: var(--text);
         }
 
         form {
@@ -104,8 +104,8 @@
         input, select {
             padding: 12px;
             border-radius: 10px;
-            border: 1px solid #334155;
-            background: #0f172a;
+            border: 1px solid var(--border-strong);
+            background: var(--surface);
             color: white;
             outline: none;
         }
@@ -148,18 +148,18 @@
             align-items: center;
             padding: 14px;
             border-radius: 10px;
-            background: #0f172a;
+            background: var(--surface);
             margin-bottom: 10px;
-            border: 1px solid #1f2937;
+            border: 1px solid var(--border);
         }
 
         .ip {
             font-weight: bold;
-            color: white;
+            color: var(--text);
         }
 
         .reason {
-            color: #94a3b8;
+            color: var(--muted);
             font-size: 13px;
             margin-top: 4px;
         }
@@ -168,7 +168,7 @@
             background: rgba(239, 68, 68, 0.18);
             padding: 7px 12px;
             border-radius: 8px;
-            color: #fca5a5;
+            color: var(--bad-text);
             text-decoration: none;
             font-weight: bold;
             border: 1px solid rgba(239, 68, 68, 0.35);
@@ -187,22 +187,23 @@
 
         .success {
             background: rgba(34,197,94,0.2);
-            color: #86efac;
+            color: var(--ok-text);
             border: 1px solid rgba(34,197,94,0.35);
         }
 
         .error {
             background: rgba(239,68,68,0.2);
-            color: #fca5a5;
+            color: var(--bad-text);
             border: 1px solid rgba(239,68,68,0.35);
         }
 
         .empty {
-            color: #94a3b8;
+            color: var(--muted);
             font-style: italic;
         }
     </style>
     <link href="/static/ui.css" rel="stylesheet">
+    <script src="/static/theme.js"></script>
 </head>
 
 <body>
