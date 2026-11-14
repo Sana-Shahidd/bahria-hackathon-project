@@ -75,7 +75,7 @@ AUTO_TRIAGE_INTERVAL_SECONDS = int(os.environ.get("AUTO_TRIAGE_INTERVAL_SECONDS"
 LLM_PROVIDER = os.environ.get("LLM_PROVIDER", "offline").lower()
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
-GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.8-flash")
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
 
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
 OPENAI_BASE_URL = os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1")
